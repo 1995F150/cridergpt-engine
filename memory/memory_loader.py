@@ -8,13 +8,31 @@ except ImportError:
 def load_memory_from_supabase():
     """Reads all rows from Supabase ai_memory table."""
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-    # Read all records from the existing ai_memory table.
-    # As per instructions: Do not write, only read.
     response = supabase.table("ai_memory").select("*").execute()
-
     return response.data
 
-if __name__ == "__main__":
-    memories = load_memory_from_supabase()
-    print(f"Loaded {len(memories)} memories from Supabase.")
+def get_memories(user_id, query, recent_k=5, relevant_k=5):
+    """
+    Retrieves the top k recent and top k relevant memories for the user.
+    """
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    
+    # Fetch top k recent memories
+    recent_res = supabase.table("ai_memory") \
+        .select("*") \
+        .eq("user_id", user_id) \
+        .order("created_at", descending=True) \
+        .limit(recent_k) \
+        .execute()
+    
+    # Fetch top k relevant memories (Mocking semantic search with a simple query for now)
+    relevant_res = supabase.table("ai_memory") \
+        .select("*") \
+        .eq("user_id", user_id) \
+        .ilike("content", f"%{query}%") \
+        .limit(relevant_k) \
+        .execute()
+    
+    # Combine and deduplicate by memory ID
+    mem_map = {m['id']: m for m in (recent_res.data + relevant_res.data)}
+    return list(mem_map.values())

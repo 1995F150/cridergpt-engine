@@ -1,12 +1,12 @@
 import os
 from supabase import create_client, Client
-from memory.memory_store import supabase  # Correctly import your centralized client
+from memory.memory_store import supabase
 
 try:
     from config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 except ImportError:
-    SUPABASE_URL = os.getenv("SUPABASE_URL", "your_supabase_url")
-    SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "your_supabase_key")
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 def load_memory_from_supabase():
     """Reads all rows from Supabase ai_memory table."""
@@ -73,7 +73,6 @@ def get_memories(user_id, query, recent_k=5, relevant_k=5):
         return []
         
     try:
-        # Fetch top k recent memories
         recent_res = supabase.table("ai_memory") \
             .select("*") \
             .eq("user_id", user_id) \
@@ -81,7 +80,6 @@ def get_memories(user_id, query, recent_k=5, relevant_k=5):
             .limit(recent_k) \
             .execute()
         
-        # Fetch top k relevant memories via basic text matching
         relevant_res = supabase.table("ai_memory") \
             .select("*") \
             .eq("user_id", user_id) \
@@ -89,7 +87,6 @@ def get_memories(user_id, query, recent_k=5, relevant_k=5):
             .limit(relevant_k) \
             .execute()
         
-        # Combine and deduplicate by memory ID
         mem_map = {m['id']: m for m in (recent_res.data + relevant_res.data)}
         return list(mem_map.values())
     except Exception:

@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from api.auth import validate_api_key
-from engine.inference import generate
+from engine.agent import get_agent_response
 
 router = APIRouter()
 
@@ -30,27 +30,13 @@ async def chat(request: ChatRequest, api_key: str = Depends(validate_api_key)):
         conversation_id = str(uuid.uuid4())
 
     # 2. Handle missing user_id (guest turn)
-    if not request.user_id:
-        # Treat as anonymous/guest turn. 
-        # Skip Supabase ai_memory, profiles, and chat_messages lookups.
-        # But still run generation.
-        response_text = generate(request.message)
-        return ChatResponse(
-            conversation_id=conversation_id,
-            response=response_text,
-            memories_used=[],
-            model="cridergpt-engine",
-            latency_ms=100
-        )
+    user_id = request.user_id or "guest"
 
-    # 3. Handle authenticated user
-    # (Supabase lookups would go here for authenticated users)
-    response_text = generate(request.message)
+    # 3. Get response from fixed agent logic
+    # This uses engine/agent.py which has the memory cap and system prompt.
+    response_text = get_agent_response(request.message, user_id, conversation_id)
     
     return ChatResponse(
         conversation_id=conversation_id,
-        response=response_text,
-        memories_used=[],
-        model="cridergpt-engine",
-        latency_ms=100
+        response=response_text
     )

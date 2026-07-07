@@ -6,7 +6,24 @@ def get_agent_response(user_input):
     """Uses the local memory context to answer user queries."""
     # Load the LLM pipeline
     generator = pipeline("text-generation", model=MODEL_NAME)
-    
+    from transformers import pipeline
+from .memory_store import get_formatted_context
+from .config import MODEL_NAME
+
+def get_agent_response(user_input):
+    """Uses the local memory context to answer user queries."""
+    # Load the LLM pipeline
+    generator = pipeline("text-generation", model=MODEL_NAME)
+
+    # Get local memory context from memory_store
+    context = get_formatted_context()
+
+    # Construct the prompt with memory context
+    prompt = f"System: You are CriderGPT. Answer the User Question directly and concisely. Use the Agent Memory Context only as background knowledge. Do not repeat the context.\n\nAgent Memory Context:\n{context}\n\nUser Question: {user_input}\nAgent Response:"
+
+    # Generate response
+    result = generator(prompt, max_length=200, num_return_sequences=1, truncation=True)
+    return result[0]['generated_text']
     # Get local memory context from memory_store
     context = get_formatted_context()
     

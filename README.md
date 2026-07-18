@@ -72,3 +72,5 @@ python3 -m venv .venv
 sudo bash /opt/cridergpt-engine/deployment/update.sh
 journalctl -u cridergpt-engine -n 100 --no-pager
 ```
+
+The updater never creates, replaces, edits, changes ownership of, or changes permissions on the existing `.env` file. It verifies the file checksum before restarting the service.

@@ -11,8 +11,8 @@ fi
 
 ENV_CHECKSUM_BEFORE="$(sha256sum "$ENV_FILE" | awk '{print $1}')"
 
-sudo git -C "$DEST_DIR" pull --ff-only
-sudo "$DEST_DIR/venv/bin/pip" install -r "$DEST_DIR/requirements.txt"
+sudo -u cridergpt git -C "$DEST_DIR" pull --ff-only
+sudo -u cridergpt "$DEST_DIR/venv/bin/pip" install -r "$DEST_DIR/requirements.txt"
 
 ENV_CHECKSUM_AFTER="$(sha256sum "$ENV_FILE" | awk '{print $1}')"
 if [ "$ENV_CHECKSUM_BEFORE" != "$ENV_CHECKSUM_AFTER" ]; then

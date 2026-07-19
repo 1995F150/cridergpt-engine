@@ -28,9 +28,51 @@ sudo systemctl restart cridergpt-engine
 curl http://127.0.0.1:8000/health
 ```
 
-The installer deliberately stops the first time it creates `.env`; configure it before starting the service. Never put actual secrets in Git.
+The installer deliberately stops after creating a blank, mode-`0600` `.env` on
+the first run. Configure it and run the installer again. The repository does
+not contain an environment sample, and actual secrets must never be committed.
+
+Required server variables:
+
+```text
+CRIDERGPT_ENGINE_API_KEY=<same private value as the Supabase secret>
+SUPABASE_URL=https://udpldrrpebdyuiqdtqnq.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<server-only value>
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=llama3.1:8b
+OLLAMA_VISION_MODEL=llava:7b
+IMAGE_BACKEND=automatic1111
+IMAGE_API_URL=http://127.0.0.1:7860
+ALLOWED_REFERENCE_HOSTS=udpldrrpebdyuiqdtqnq.supabase.co
+CRIDERGPT_FOUNDER_NAME=Jessie Crider
+CRIDERGPT_FOUNDER_EMAIL=jessiecrider3@gmail.com
+```
 
 The value in `CRIDERGPT_ENGINE_API_KEY` must match the Supabase Edge Function secret with the same name. The plural `CRIDERGPT_ENGINE_API_KEYS` is also accepted for key rotation. The public HTTPS origin must be stored in the Edge Function secret `CRIDERGPT_ENGINE_URL` without an extra path suffix.
+
+CriderGPT's production origin is:
+
+```text
+https://engine.cridergpt.com
+```
+
+Set these two Edge Function secrets in the CriderGPT Supabase project:
+
+```text
+CRIDERGPT_ENGINE_URL=https://engine.cridergpt.com
+CRIDERGPT_ENGINE_API_KEY=<same private value configured on the engine server>
+```
+
+The hostname must have a public DNS record or Cloudflare Tunnel and must route
+through HTTPS to Nginx, which proxies to Uvicorn at `127.0.0.1:8000`. The
+repository cannot create DNS records or certificates during `update.sh`.
+Install `deployment/nginx.conf.example` only after the certificate for
+`engine.cridergpt.com` exists.
+
+The `/health` route is intentionally public and contains no credentials. Chat
+and image-generation routes require `X-API-Key`. Do not create an API-key
+generator on the public website; generate and rotate the key on the server,
+then store the matching value in Supabase Edge Function secrets.
 
 ## API
 
@@ -68,9 +110,22 @@ python3 -m venv .venv
 
 ## Updating
 
+The installer enables a systemd timer that checks `origin/main` every five
+minutes. It deploys only when the remote commit is a fast-forward from the
+currently deployed commit. A lock prevents overlapping deployments.
+
 ```bash
 sudo bash /opt/cridergpt-engine/deployment/update.sh
 journalctl -u cridergpt-engine -n 100 --no-pager
+systemctl list-timers cridergpt-engine-update.timer
+journalctl -u cridergpt-engine-update.service -n 100 --no-pager
 ```
 
 The updater never creates, replaces, edits, changes ownership of, or changes permissions on the existing `.env` file. It verifies the file checksum before restarting the service.
+It also performs a required local health check and a non-fatal public HTTPS
+check against `https://engine.cridergpt.com/health`. A DNS, certificate, or
+proxy problem is reported clearly without taking the healthy local service
+back down.
+
+Only reviewed changes merged into `main` are eligible for automatic
+deployment. If a pull request should not reach production, do not merge it.

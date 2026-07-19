@@ -2,10 +2,10 @@ limit_req_zone $binary_remote_addr zone=cridergpt_engine:10m rate=30r/m;
 
 server {
     listen 443 ssl http2;
-    server_name engine.example.com;
+    server_name engine.cridergpt.com;
 
-    ssl_certificate /etc/letsencrypt/live/engine.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/engine.example.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/engine.cridergpt.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/engine.cridergpt.com/privkey.pem;
     client_max_body_size 16m;
 
     location / {
@@ -20,4 +20,3 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-

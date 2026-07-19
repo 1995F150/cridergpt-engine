@@ -1,0 +1,12 @@
+[Unit]
+Description=Check and deploy CriderGPT Engine updates
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/cridergpt-engine/.env
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/flock --nonblock /run/lock/cridergpt-engine-update.lock /usr/bin/bash /opt/cridergpt-engine/deployment/auto-update.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

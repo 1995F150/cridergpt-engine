@@ -23,12 +23,28 @@ fi
 
 sudo install -o root -g root -m 0644 \
   "$DEST_DIR/deployment/cridergpt-engine.service" \
-  /etc/systemd/system/cridergpt-engine.service
+  "$DEST_DIR/deployment/cridergpt-engine-update.service" \
+  "$DEST_DIR/deployment/cridergpt-engine-update.timer" \
+  /etc/systemd/system/
 sudo systemctl daemon-reload
+sudo systemctl enable --now cridergpt-engine-update.timer
 sudo systemctl restart cridergpt-engine.service
 echo "Checking the local engine..."
-curl --fail --silent --show-error http://127.0.0.1:8000/health
+LOCAL_HEALTHY=false
+for _attempt in $(seq 1 15); do
+  if curl --fail --silent --show-error --max-time 5 \
+    http://127.0.0.1:8000/health; then
+    LOCAL_HEALTHY=true
+    break
+  fi
+  sleep 2
+done
 echo
+if [ "$LOCAL_HEALTHY" != "true" ]; then
+  echo "Update failed: the engine did not become healthy after restart." >&2
+  sudo journalctl -u cridergpt-engine.service -n 50 --no-pager >&2
+  exit 1
+fi
 
 # The public check is intentionally non-fatal. DNS and TLS are managed outside
 # this repository, and a temporary public routing issue must not roll back or

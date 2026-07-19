@@ -32,6 +32,30 @@ The installer deliberately stops the first time it creates `.env`; configure it 
 
 The value in `CRIDERGPT_ENGINE_API_KEY` must match the Supabase Edge Function secret with the same name. The plural `CRIDERGPT_ENGINE_API_KEYS` is also accepted for key rotation. The public HTTPS origin must be stored in the Edge Function secret `CRIDERGPT_ENGINE_URL` without an extra path suffix.
 
+CriderGPT's production origin is:
+
+```text
+https://engine.cridergpt.com
+```
+
+Set these two Edge Function secrets in the CriderGPT Supabase project:
+
+```text
+CRIDERGPT_ENGINE_URL=https://engine.cridergpt.com
+CRIDERGPT_ENGINE_API_KEY=<same private value configured on the engine server>
+```
+
+The hostname must have a public DNS record or Cloudflare Tunnel and must route
+through HTTPS to Nginx, which proxies to Uvicorn at `127.0.0.1:8000`. The
+repository cannot create DNS records or certificates during `update.sh`.
+Install `deployment/nginx.conf.example` only after the certificate for
+`engine.cridergpt.com` exists.
+
+The `/health` route is intentionally public and contains no credentials. Chat
+and image-generation routes require `X-API-Key`. Do not create an API-key
+generator on the public website; generate and rotate the key on the server,
+then store the matching value in Supabase Edge Function secrets.
+
 ## API
 
 All generation routes require `X-API-Key`. `/health` is intentionally non-secret and reports dependency readiness without revealing credentials.
@@ -74,3 +98,7 @@ journalctl -u cridergpt-engine -n 100 --no-pager
 ```
 
 The updater never creates, replaces, edits, changes ownership of, or changes permissions on the existing `.env` file. It verifies the file checksum before restarting the service.
+It also performs a required local health check and a non-fatal public HTTPS
+check against `https://engine.cridergpt.com/health`. A DNS, certificate, or
+proxy problem is reported clearly without taking the healthy local service
+back down.

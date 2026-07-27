@@ -1,0 +1,22 @@
+[
+  {
+    "project_key": "cridergpt",
+    "project_name": "CriderGPT",
+    "category": "architecture",
+    "title": "Engine deployment",
+    "content": "The production engine is a system-level FastAPI service behind Nginx and HTTPS. It does not use Docker.",
+    "status": "active",
+    "priority": 95,
+    "source": "owner-confirmed"
+  },
+  {
+    "project_key": "cridershield",
+    "project_name": "CriderShield",
+    "category": "deployment",
+    "title": "Repository synchronization",
+    "content": "Fixes made directly on the server must also be committed to GitHub so future installations contain the same required files and service configuration.",
+    "status": "active",
+    "priority": 90,
+    "source": "owner-confirmed"
+  }
+]

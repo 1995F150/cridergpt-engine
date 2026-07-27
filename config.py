@@ -78,5 +78,14 @@ class Settings:
     max_reference_images: int = _int("MAX_REFERENCE_IMAGES", 4)
     allowed_reference_hosts: tuple[str, ...] = _csv("ALLOWED_REFERENCE_HOSTS")
 
+    video_backend: str = os.getenv("VIDEO_BACKEND", "http").lower()
+    video_api_url: str | None = os.getenv("VIDEO_API_URL")
+    video_api_key: str | None = os.getenv("VIDEO_API_KEY")
+    video_create_path: str = os.getenv("VIDEO_CREATE_PATH", "/v1/videos")
+    video_status_path: str = os.getenv("VIDEO_STATUS_PATH", "/v1/videos/{job_id}")
+    video_cancel_path: str = os.getenv("VIDEO_CANCEL_PATH", "/v1/videos/{job_id}/cancel")
+    video_timeout_seconds: int = _int("VIDEO_TIMEOUT_SECONDS", 120)
+    video_webhook_secret: str | None = os.getenv("VIDEO_WEBHOOK_SECRET")
+
 
 settings = Settings()

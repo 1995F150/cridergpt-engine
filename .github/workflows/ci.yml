@@ -40,6 +40,8 @@ jobs:
           python -m pip install pytest
 
       - name: Compile all Python files
+        id: compile
+        continue-on-error: true
         run: |
           python - <<'PY'
           import pathlib
@@ -54,11 +56,24 @@ jobs:
                   py_compile.compile(str(path), doraise=True)
               except py_compile.PyCompileError as exc:
                   failures.append(f"{path}:\n{exc.msg}")
-          if failures:
-              print('\n\n'.join(failures))
-              sys.exit(1)
-          print('All Python files compiled successfully.')
+          report = '\n\n'.join(failures) if failures else 'All Python files compiled successfully.'
+          pathlib.Path('compile-report.txt').write_text(report + '\n', encoding='utf-8')
+          print(report)
+          sys.exit(1 if failures else 0)
           PY
+
+      - name: Upload compile report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compile-report-${{ matrix.python-version }}
+          path: compile-report.txt
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Stop after compile failure
+        if: steps.compile.outcome == 'failure'
+        run: exit 1
 
       - name: Import production application
         env:

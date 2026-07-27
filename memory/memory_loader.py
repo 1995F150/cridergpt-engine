@@ -7,7 +7,9 @@ import re
 from typing import Any
 
 from config import settings
+from memory.core_profile import get_core_profile
 from memory.memory_store import get_supabase
+from memory.project_knowledge import get_project_knowledge
 
 logger = logging.getLogger(__name__)
 
@@ -131,19 +133,32 @@ def build_context(
     sections: list[str] = []
     rows_used = 0
 
+    core_profile = get_core_profile(user_id)
+    if core_profile:
+        rows_used += 1
+        sections.append(core_profile.to_prompt_section())
+
+    projects = get_project_knowledge(user_id, message)
+    if projects:
+        rows_used += len(projects)
+        sections.append(
+            "RELEVANT PROJECT KNOWLEDGE:\n"
+            + "\n".join(item.to_prompt_line() for item in projects)
+        )
+
     samples = get_writing_samples()
     if samples:
         rows_used += len(samples)
         sections.append(
             "WRITING STYLE SAMPLES:\n"
-            + "\n".join(s.get("content", "")[:2000] for s in samples)
+            + "\n".join(s.get("content", "")[:1200] for s in samples)
         )
 
     profile = get_profile(user_id)
     if profile:
         rows_used += 1
         sections.append(
-            "USER PROFILE:\n"
+            "LEGACY USER PROFILE:\n"
             + "\n".join(
                 f"{key}: {value}"
                 for key, value in profile.items()
@@ -157,7 +172,8 @@ def build_context(
         sections.append(
             "USER MEMORY:\n"
             + "\n".join(
-                f"[{m.get('category', 'general')}] {m.get('topic', '')}: {m.get('details') or m.get('content') or ''}"
+                f"[{m.get('category', 'general')}] {m.get('topic', '')}: "
+                f"{m.get('details') or m.get('content') or ''}"
                 for m in memories
             )
         )
@@ -181,7 +197,8 @@ def build_context(
         sections.append(
             "CRIDERGPT TRAINING CONTEXT:\n"
             + "\n".join(
-                f"[{t.get('category', 'general')}] {t.get('topic', '')}: {t.get('content', '')}"
+                f"[{t.get('category', 'general')}] {t.get('topic', '')}: "
+                f"{t.get('content', '')}"
                 for t in training
             )
         )

@@ -13,6 +13,7 @@ from api.usage import router as usage_router
 from api.video import router as video_router
 from config import settings
 from memory.memory_store import get_supabase
+from usage.middleware import UsageMeterMiddleware
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level, logging.INFO),
@@ -20,6 +21,7 @@ logging.basicConfig(
 )
 
 app = FastAPI(title="CriderGPT Engine", version="3.2.0")
+app.add_middleware(UsageMeterMiddleware)
 
 for router, tag in ((chat_router, "chat"), (image_router, "image"), (video_router, "video"), (usage_router, "usage")):
     app.include_router(router, tags=[tag])

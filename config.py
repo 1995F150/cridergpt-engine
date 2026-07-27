@@ -78,7 +78,20 @@ class Settings:
     max_reference_images: int = _int("MAX_REFERENCE_IMAGES", 4)
     allowed_reference_hosts: tuple[str, ...] = _csv("ALLOWED_REFERENCE_HOSTS")
 
-    video_backend: str = os.getenv("VIDEO_BACKEND", "http").lower()
+    video_backend: str = os.getenv("VIDEO_BACKEND", "local").lower()
+    local_video_url: str = os.getenv("LOCAL_VIDEO_URL", "http://127.0.0.1:8188")
+    local_video_workflow: str = os.getenv("LOCAL_VIDEO_WORKFLOW", str(BASE_DIR / "video" / "workflows" / "default.json"))
+    local_video_model: str = os.getenv("LOCAL_VIDEO_MODEL", "local-video-model")
+    local_video_timeout_seconds: int = _int("LOCAL_VIDEO_TIMEOUT_SECONDS", 3600)
+    local_video_poll_seconds: float = _float("LOCAL_VIDEO_POLL_SECONDS", 2.0)
+    video_worker_poll_seconds: float = _float("VIDEO_WORKER_POLL_SECONDS", 3.0)
+    video_output_dir: str = os.getenv("VIDEO_OUTPUT_DIR", str(BASE_DIR / "data" / "generated-videos"))
+    video_audio_timeout_seconds: int = _int("VIDEO_AUDIO_TIMEOUT_SECONDS", 900)
+    local_tts_url: str | None = os.getenv("LOCAL_TTS_URL")
+    local_sfx_url: str | None = os.getenv("LOCAL_SFX_URL")
+    local_music_url: str | None = os.getenv("LOCAL_MUSIC_URL")
+
+    # Optional compatibility path for a separately hosted backend. Local is default.
     video_api_url: str | None = os.getenv("VIDEO_API_URL")
     video_api_key: str | None = os.getenv("VIDEO_API_KEY")
     video_create_path: str = os.getenv("VIDEO_CREATE_PATH", "/v1/videos")

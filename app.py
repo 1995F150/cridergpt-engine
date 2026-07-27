@@ -9,6 +9,7 @@ from fastapi import FastAPI
 
 from api.chat import router as chat_router
 from api.image import router as image_router
+from api.video import router as video_router
 from config import settings
 from memory.memory_store import get_supabase
 
@@ -17,12 +18,14 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 
-app = FastAPI(title="CriderGPT Engine", version="3.0.0")
+app = FastAPI(title="CriderGPT Engine", version="3.1.0")
 
 app.include_router(chat_router, tags=["chat"])
 app.include_router(image_router, tags=["image"])
+app.include_router(video_router, tags=["video"])
 app.include_router(chat_router, prefix="/api", tags=["chat"], include_in_schema=False)
 app.include_router(image_router, prefix="/api", tags=["image"], include_in_schema=False)
+app.include_router(video_router, prefix="/api", tags=["video"], include_in_schema=False)
 
 
 @app.get("/")
@@ -50,6 +53,8 @@ async def health():
             "authentication": bool(settings.api_keys),
             "image_backend": settings.image_backend,
             "embedding_model": settings.embedding_model,
+            "video_backend": settings.video_backend,
+            "video_provider_configured": bool(settings.video_api_url),
         },
         "capabilities": [
             "text_chat",
@@ -66,5 +71,9 @@ async def health():
             "writing_style",
             "image_generate",
             "image_analyze",
+            "video_generate",
+            "video_job_status",
+            "video_cancel",
+            "video_webhooks",
         ],
     }

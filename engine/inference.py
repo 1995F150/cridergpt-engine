@@ -9,7 +9,7 @@ from typing import Any
 
 import requests
 from config import settings
-from memory.context_builder_v3 import build_context
+from memory.context_builder_v4 import build_context
 
 logger = logging.getLogger(__name__)
 

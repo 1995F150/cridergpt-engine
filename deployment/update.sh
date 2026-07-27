@@ -45,9 +45,6 @@ if [ -f "$REQUIREMENTS_FILE" ]; then
   REQUIREMENTS_AFTER="$(sha256sum "$REQUIREMENTS_FILE" | awk '{print $1}')"
 fi
 
-# Normal engine code updates must not alter the working virtual environment.
-# If dependencies change, stop and require an explicit, separately reviewed
-# dependency upgrade instead of silently changing the known-good environment.
 if [ -n "$REQUIREMENTS_BEFORE" ] && [ "$REQUIREMENTS_BEFORE" != "$REQUIREMENTS_AFTER" ]; then
   echo "Update stopped: requirements.txt changed."
   echo "The existing virtual environment was left untouched."
@@ -60,18 +57,20 @@ printf '%s\n' "$REQUIREMENTS_AFTER" | sudo -u cridergpt tee "$REQUIREMENTS_STATE
 
 sudo install -o root -g root -m 0644 \
   "$DEST_DIR/deployment/cridergpt-engine.service" \
+  "$DEST_DIR/deployment/cridergpt-video-worker.service" \
   "$DEST_DIR/deployment/cridergpt-engine-update.service" \
   "$DEST_DIR/deployment/cridergpt-engine-update.timer" \
   /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now cridergpt-engine-update.timer
+sudo systemctl enable cridergpt-video-worker.service
 sudo systemctl restart cridergpt-engine.service
+sudo systemctl restart cridergpt-video-worker.service
 
 echo "Checking the local engine..."
 LOCAL_HEALTHY=false
 for _attempt in $(seq 1 15); do
-  if curl --fail --silent --show-error --max-time 5 \
-    http://127.0.0.1:8000/health; then
+  if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:8000/health; then
     LOCAL_HEALTHY=true
     break
   fi
@@ -84,12 +83,8 @@ if [ "$LOCAL_HEALTHY" != "true" ]; then
   exit 1
 fi
 
-# The public check is intentionally non-fatal. DNS and TLS are managed outside
-# this repository, and a temporary public routing issue must not roll back or
-# stop an otherwise healthy local engine after an update.
 echo "Checking the public Supabase engine origin: $PUBLIC_HEALTH_URL"
-if curl --fail --silent --show-error --connect-timeout 10 --max-time 20 \
-  "$PUBLIC_HEALTH_URL" >/dev/null; then
+if curl --fail --silent --show-error --connect-timeout 10 --max-time 20 "$PUBLIC_HEALTH_URL" >/dev/null; then
   echo "Public engine endpoint is reachable."
 else
   echo "WARNING: Local engine is healthy, but $PUBLIC_HEALTH_URL is not reachable." >&2

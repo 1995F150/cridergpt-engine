@@ -40,10 +40,25 @@ jobs:
           python -m pip install pytest
 
       - name: Compile all Python files
-        shell: bash
         run: |
-          set -o pipefail
-          python -m compileall . 2>&1 | tail -120
+          python - <<'PY'
+          import pathlib
+          import py_compile
+          import sys
+
+          failures = []
+          for path in pathlib.Path('.').rglob('*.py'):
+              if any(part in {'.git', 'venv', '.venv', '__pycache__'} for part in path.parts):
+                  continue
+              try:
+                  py_compile.compile(str(path), doraise=True)
+              except py_compile.PyCompileError as exc:
+                  failures.append(f"{path}:\n{exc.msg}")
+          if failures:
+              print('\n\n'.join(failures))
+              sys.exit(1)
+          print('All Python files compiled successfully.')
+          PY
 
       - name: Import production application
         env:

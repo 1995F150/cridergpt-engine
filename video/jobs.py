@@ -1,4 +1,4 @@
-"""Video job persistence and provider orchestration."""
+"""Video job persistence and local/optional HTTP orchestration."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import logging
 from typing import Any
 from uuid import uuid4
 
+from config import settings
 from memory.memory_store import get_supabase
 from video.providers import ProviderJob, VideoProviderError, get_provider
 
@@ -38,39 +39,40 @@ def _provider_fields(job: ProviderJob) -> dict[str, Any]:
 
 def create_job(user_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     internal_id = str(uuid4())
+    base = {
+        "id": internal_id,
+        "user_id": user_id,
+        "prompt": payload["prompt"],
+        "negative_prompt": payload.get("negative_prompt"),
+        "model": payload.get("model"),
+        "duration_seconds": payload.get("duration_seconds"),
+        "aspect_ratio": payload.get("aspect_ratio"),
+        "reference_image_url": payload.get("reference_image_url"),
+    }
+    if settings.video_backend == "local":
+        return _save(
+            {
+                **base,
+                "provider": "local",
+                "provider_job_id": internal_id,
+                "status": "queued",
+                "progress": 0,
+                "provider_payload": payload,
+            }
+        )
     submitted = get_provider().create(payload)
-    return _save(
-        {
-            "id": internal_id,
-            "user_id": user_id,
-            "prompt": payload["prompt"],
-            "negative_prompt": payload.get("negative_prompt"),
-            "model": payload.get("model"),
-            "duration_seconds": payload.get("duration_seconds"),
-            "aspect_ratio": payload.get("aspect_ratio"),
-            "reference_image_url": payload.get("reference_image_url"),
-            "provider": "http",
-            **_provider_fields(submitted),
-        }
-    )
+    return _save({**base, "provider": "http", **_provider_fields(submitted)})
 
 
 def get_job(user_id: str, job_id: str, refresh: bool = True) -> dict[str, Any]:
     rows = (
-        _client()
-        .table("video_generation_jobs")
-        .select("*")
-        .eq("id", job_id)
-        .eq("user_id", user_id)
-        .limit(1)
-        .execute()
-        .data
-        or []
+        _client().table("video_generation_jobs").select("*")
+        .eq("id", job_id).eq("user_id", user_id).limit(1).execute().data or []
     )
     if not rows:
         raise KeyError(job_id)
     row = rows[0]
-    if refresh and row.get("status") not in TERMINAL_STATUSES:
+    if refresh and row.get("provider") == "http" and row.get("status") not in TERMINAL_STATUSES:
         latest = get_provider().get(str(row["provider_job_id"]))
         row = _save({"id": job_id, "user_id": user_id, **_provider_fields(latest)})
     return row
@@ -78,34 +80,27 @@ def get_job(user_id: str, job_id: str, refresh: bool = True) -> dict[str, Any]:
 
 def list_jobs(user_id: str, limit: int = 20) -> list[dict[str, Any]]:
     return (
-        _client()
-        .table("video_generation_jobs")
-        .select("*")
-        .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .limit(max(1, min(limit, 100)))
-        .execute()
-        .data
-        or []
+        _client().table("video_generation_jobs").select("*")
+        .eq("user_id", user_id).order("created_at", desc=True)
+        .limit(max(1, min(limit, 100))).execute().data or []
     )
 
 
 def cancel_job(user_id: str, job_id: str) -> dict[str, Any]:
     row = get_job(user_id, job_id, refresh=False)
+    if row.get("provider") == "local":
+        if row.get("status") in TERMINAL_STATUSES:
+            return row
+        return _save({"id": job_id, "user_id": user_id, "status": "cancelled"})
     cancelled = get_provider().cancel(str(row["provider_job_id"]))
     return _save({"id": job_id, "user_id": user_id, **_provider_fields(cancelled)})
 
 
 def apply_webhook(provider_job_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
     rows = (
-        _client()
-        .table("video_generation_jobs")
-        .select("id,user_id")
-        .eq("provider_job_id", provider_job_id)
-        .limit(1)
-        .execute()
-        .data
-        or []
+        _client().table("video_generation_jobs").select("id,user_id")
+        .eq("provider_job_id", provider_job_id).eq("provider", "http")
+        .limit(1).execute().data or []
     )
     if not rows:
         logger.warning("Ignoring webhook for unknown provider job %s", provider_job_id)

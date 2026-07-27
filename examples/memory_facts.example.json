@@ -1,0 +1,16 @@
+{
+  "facts": [
+    {
+      "subject": "Chicken incubation batch",
+      "predicate": "expected hatch date is",
+      "value": "2026-08-02",
+      "category": "chicken_business",
+      "status": "active",
+      "sensitivity": "private",
+      "confidence": 1.0,
+      "source": "user_statement",
+      "source_date": "2026-07-22T00:00:00Z",
+      "review_after": "2026-08-03T00:00:00Z"
+    }
+  ]
+}

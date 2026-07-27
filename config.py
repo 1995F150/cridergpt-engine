@@ -28,11 +28,7 @@ def _float(name: str, default: float) -> float:
 
 def _bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
-    return (
-        default
-        if value is None
-        else value.strip().lower() in {"1", "true", "yes", "on"}
-    )
+    return default if value is None else value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _csv(name: str) -> tuple[str, ...]:
@@ -51,14 +47,20 @@ class Settings:
         or _csv("ENGINE_API_KEY")
     )
 
-    ollama_base_url: str = os.getenv(
-        "OLLAMA_BASE_URL", "http://127.0.0.1:11434"
-    ).rstrip("/")
+    ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
     ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
     ollama_vision_model: str = os.getenv("OLLAMA_VISION_MODEL", "llava:7b")
     ollama_timeout_seconds: int = _int("OLLAMA_TIMEOUT_SECONDS", 120)
     default_temperature: float = _float("OLLAMA_TEMPERATURE", 0.7)
     default_max_tokens: int = _int("OLLAMA_MAX_TOKENS", 2000)
+
+    embedding_model: str = os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
+    embedding_timeout_seconds: int = _int("EMBEDDING_TIMEOUT_SECONDS", 30)
+    rag_context_limit: int = _int("RAG_CONTEXT_LIMIT", 6)
+    rag_similarity_threshold: float = _float("RAG_SIMILARITY_THRESHOLD", 0.55)
+    rag_embedding_input_chars: int = _int("RAG_EMBEDDING_INPUT_CHARS", 8000)
+    rag_chunk_prompt_chars: int = _int("RAG_CHUNK_PROMPT_CHARS", 1800)
+    rag_total_prompt_chars: int = _int("RAG_TOTAL_PROMPT_CHARS", 7000)
 
     supabase_url: str | None = os.getenv("SUPABASE_URL")
     supabase_service_role_key: str | None = os.getenv("SUPABASE_SERVICE_ROLE_KEY")

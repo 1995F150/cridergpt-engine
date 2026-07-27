@@ -17,12 +17,10 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 
-app = FastAPI(title="CriderGPT Engine", version="2.0.0")
+app = FastAPI(title="CriderGPT Engine", version="3.0.0")
 
-# Root routes are the production contract used by Supabase.
 app.include_router(chat_router, tags=["chat"])
 app.include_router(image_router, tags=["image"])
-# Keep /api aliases for older clients.
 app.include_router(chat_router, prefix="/api", tags=["chat"], include_in_schema=False)
 app.include_router(image_router, prefix="/api", tags=["image"], include_in_schema=False)
 
@@ -51,10 +49,20 @@ async def health():
             "supabase": supabase_configured,
             "authentication": bool(settings.api_keys),
             "image_backend": settings.image_backend,
+            "embedding_model": settings.embedding_model,
         },
         "capabilities": [
             "text_chat",
-            "supabase_memory",
+            "core_profile",
+            "project_knowledge",
+            "structured_memory",
+            "semantic_rag",
+            "preference_learning",
+            "automatic_memory_writing",
+            "planning",
+            "agent_routing",
+            "tool_orchestration",
+            "self_evaluation",
             "writing_style",
             "image_generate",
             "image_analyze",

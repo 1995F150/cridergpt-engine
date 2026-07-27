@@ -40,7 +40,10 @@ jobs:
           python -m pip install pytest
 
       - name: Compile all Python files
-        run: python -m compileall -q .
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m compileall . 2>&1 | tail -120
 
       - name: Import production application
         env:

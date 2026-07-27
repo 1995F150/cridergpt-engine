@@ -206,7 +206,7 @@ async def analyze_image(
         response = requests.post(
             f"{settings.ollama_base_url}/api/chat",
             json={
-                "model": request.model or settings.ollama_model,
+                "model": request.model or settings.ollama_vision_model,
                 "stream": False,
                 "messages": [
                     {"role": "user", "content": request.prompt, "images": [encoded]}
@@ -224,7 +224,19 @@ async def analyze_image(
     except (requests.RequestException, ValueError, RuntimeError) as exc:
         logger.error("Image analysis failed: %s", exc)
         raise HTTPException(
-            status_code=503, detail="The local vision model is uã­8¶‰Ëkºwµçoutes = {
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The local vision model is unavailable or rejected the request",
+        ) from exc
+
+    return {
+        "description": description,
+        "model": request.model or settings.ollama_vision_model,
+        "latency_ms": int((time.monotonic() - started) * 1000),
+    }
+
+
+def route_for_mode(mode: str | None) -> str:
+    routes = {
         "chat": "/chat",
         "image_generate": "/image/generate",
         "image_recognize": "/image/analyze",

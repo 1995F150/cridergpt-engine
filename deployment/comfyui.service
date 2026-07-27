@@ -1,0 +1,23 @@
+[Unit]
+Description=ComfyUI local media generation runtime
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/comfyui/main.py
+
+[Service]
+Type=simple
+User=cridergpt
+Group=cridergpt
+WorkingDirectory=/opt/comfyui
+ExecStart=/opt/comfyui/venv/bin/python /opt/comfyui/main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/comfyui /opt/cridergpt-engine/data
+
+[Install]
+WantedBy=multi-user.target

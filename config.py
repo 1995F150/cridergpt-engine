@@ -28,11 +28,7 @@ def _float(name: str, default: float) -> float:
 
 def _bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
-    return (
-        default
-        if value is None
-        else value.strip().lower() in {"1", "true", "yes", "on"}
-    )
+    return default if value is None else value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _csv(name: str) -> tuple[str, ...]:
@@ -51,14 +47,20 @@ class Settings:
         or _csv("ENGINE_API_KEY")
     )
 
-    ollama_base_url: str = os.getenv(
-        "OLLAMA_BASE_URL", "http://127.0.0.1:11434"
-    ).rstrip("/")
+    ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
     ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
     ollama_vision_model: str = os.getenv("OLLAMA_VISION_MODEL", "llava:7b")
     ollama_timeout_seconds: int = _int("OLLAMA_TIMEOUT_SECONDS", 120)
     default_temperature: float = _float("OLLAMA_TEMPERATURE", 0.7)
     default_max_tokens: int = _int("OLLAMA_MAX_TOKENS", 2000)
+
+    embedding_model: str = os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
+    embedding_timeout_seconds: int = _int("EMBEDDING_TIMEOUT_SECONDS", 30)
+    rag_context_limit: int = _int("RAG_CONTEXT_LIMIT", 6)
+    rag_similarity_threshold: float = _float("RAG_SIMILARITY_THRESHOLD", 0.55)
+    rag_embedding_input_chars: int = _int("RAG_EMBEDDING_INPUT_CHARS", 8000)
+    rag_chunk_prompt_chars: int = _int("RAG_CHUNK_PROMPT_CHARS", 1800)
+    rag_total_prompt_chars: int = _int("RAG_TOTAL_PROMPT_CHARS", 7000)
 
     supabase_url: str | None = os.getenv("SUPABASE_URL")
     supabase_service_role_key: str | None = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -75,6 +77,28 @@ class Settings:
     image_timeout_seconds: int = _int("IMAGE_TIMEOUT_SECONDS", 180)
     max_reference_images: int = _int("MAX_REFERENCE_IMAGES", 4)
     allowed_reference_hosts: tuple[str, ...] = _csv("ALLOWED_REFERENCE_HOSTS")
+
+    video_backend: str = os.getenv("VIDEO_BACKEND", "local").lower()
+    local_video_url: str = os.getenv("LOCAL_VIDEO_URL", "http://127.0.0.1:8188")
+    local_video_workflow: str = os.getenv("LOCAL_VIDEO_WORKFLOW", str(BASE_DIR / "video" / "workflows" / "default.json"))
+    local_video_model: str = os.getenv("LOCAL_VIDEO_MODEL", "local-video-model")
+    local_video_timeout_seconds: int = _int("LOCAL_VIDEO_TIMEOUT_SECONDS", 3600)
+    local_video_poll_seconds: float = _float("LOCAL_VIDEO_POLL_SECONDS", 2.0)
+    video_worker_poll_seconds: float = _float("VIDEO_WORKER_POLL_SECONDS", 3.0)
+    video_output_dir: str = os.getenv("VIDEO_OUTPUT_DIR", str(BASE_DIR / "data" / "generated-videos"))
+    video_audio_timeout_seconds: int = _int("VIDEO_AUDIO_TIMEOUT_SECONDS", 900)
+    local_tts_url: str | None = os.getenv("LOCAL_TTS_URL")
+    local_sfx_url: str | None = os.getenv("LOCAL_SFX_URL")
+    local_music_url: str | None = os.getenv("LOCAL_MUSIC_URL")
+
+    # Optional compatibility path for a separately hosted backend. Local is default.
+    video_api_url: str | None = os.getenv("VIDEO_API_URL")
+    video_api_key: str | None = os.getenv("VIDEO_API_KEY")
+    video_create_path: str = os.getenv("VIDEO_CREATE_PATH", "/v1/videos")
+    video_status_path: str = os.getenv("VIDEO_STATUS_PATH", "/v1/videos/{job_id}")
+    video_cancel_path: str = os.getenv("VIDEO_CANCEL_PATH", "/v1/videos/{job_id}/cancel")
+    video_timeout_seconds: int = _int("VIDEO_TIMEOUT_SECONDS", 120)
+    video_webhook_secret: str | None = os.getenv("VIDEO_WEBHOOK_SECRET")
 
 
 settings = Settings()

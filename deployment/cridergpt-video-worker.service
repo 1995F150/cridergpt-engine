@@ -1,0 +1,24 @@
+[Unit]
+Description=CriderGPT independent local video generation worker
+After=network-online.target cridergpt-engine.service
+Wants=network-online.target
+ConditionPathExists=/opt/cridergpt-engine/.env
+
+[Service]
+Type=simple
+User=cridergpt
+Group=cridergpt
+WorkingDirectory=/opt/cridergpt-engine
+EnvironmentFile=/opt/cridergpt-engine/.env
+ExecStart=/opt/cridergpt-engine/venv/bin/python -m video.worker
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/cridergpt-engine/data
+
+[Install]
+WantedBy=multi-user.target

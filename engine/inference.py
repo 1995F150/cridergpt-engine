@@ -1,4 +1,4 @@
-"""Ollama inference with bounded prompts and timeout-safe model selection."""
+"""Ollama inference with bounded context and Layers 4-10 orchestration."""
 
 from __future__ import annotations
 
@@ -9,7 +9,8 @@ from typing import Any
 
 import requests
 from config import settings
-from memory.context_builder_v3 import build_context
+from engine.cognitive_stack import cognitive_stack
+from memory.context_builder_v4 import build_context
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ Be accurate, useful, and honest when context does not contain an answer."""
 MAX_OLLAMA_SECONDS = 90
 MAX_SUPPLIED_PROMPT_CHARS = 30_000
 MAX_LOCAL_CONTEXT_CHARS = 24_000
+MAX_COGNITIVE_PROMPT_CHARS = 6_000
 MAX_HISTORY_MESSAGES = 10
 MAX_HISTORY_CHARS = 4_000
 
@@ -36,6 +38,8 @@ class InferenceResult:
     model: str
     memories_used: int
     latency_ms: int
+    evaluation_score: float = 1.0
+    evaluation_issues: tuple[str, ...] = ()
 
 
 def _normalize_history(history: list[dict[str, Any]] | None) -> list[dict[str, str]]:
@@ -69,11 +73,14 @@ def generate(
     if not user_input or not user_input.strip():
         raise ValueError("message is required")
 
+    cognitive_prompt, plan = cognitive_stack.prepare(user_input, user_id)
     local_context, rows_used = build_context(user_id, conversation_id, user_input)
     supplied = (system_prompt or "").strip()
     system_parts = [BASE_IDENTITY]
     if supplied:
         system_parts.append(supplied[:MAX_SUPPLIED_PROMPT_CHARS])
+    if cognitive_prompt:
+        system_parts.append(cognitive_prompt[:MAX_COGNITIVE_PROMPT_CHARS])
     if local_context:
         system_parts.append("ENGINE CONTEXT FROM SUPABASE:\n" + local_context[:MAX_LOCAL_CONTEXT_CHARS])
 
@@ -117,9 +124,20 @@ def generate(
     if not text:
         raise InferenceUnavailable("The local language model returned an empty response")
 
+    evaluation = cognitive_stack.evaluate(user_input, text)
+    if evaluation.should_revise:
+        logger.warning(
+            "Layer 10 quality gate flagged response score=%s issues=%s plan=%s",
+            evaluation.score,
+            evaluation.issues,
+            cognitive_stack.serialize_plan(plan),
+        )
+
     return InferenceResult(
         response=text,
         model=str(body.get("model") or selected_model),
         memories_used=rows_used,
         latency_ms=int((time.monotonic() - started) * 1000),
+        evaluation_score=evaluation.score,
+        evaluation_issues=evaluation.issues,
     )

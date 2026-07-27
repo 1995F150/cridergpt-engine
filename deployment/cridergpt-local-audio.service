@@ -1,0 +1,24 @@
+[Unit]
+Description=CriderGPT local narration, sound-effect, and music service
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/cridergpt-engine/.env
+
+[Service]
+Type=simple
+User=cridergpt
+Group=cridergpt
+WorkingDirectory=/opt/cridergpt-engine
+EnvironmentFile=/opt/cridergpt-engine/.env
+ExecStart=/opt/cridergpt-engine/venv/bin/uvicorn audio.local_server:app --host 127.0.0.1 --port 8190
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/cridergpt-engine/data
+
+[Install]
+WantedBy=multi-user.target

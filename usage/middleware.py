@@ -107,59 +107,67 @@ class UsageMeterMiddleware:
         except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
             pass
 
-        response_body = bytearray()
         response_start: dict[str, Any] | None = None
+        response_messages: list[dict[str, Any]] = []
+        response_body = bytearray()
 
         async def capture_send(message: dict[str, Any]) -> None:
             nonlocal response_start
             if message.get("type") == "http.response.start":
-                response_start = message
+                response_start = dict(message)
                 return
-            if message.get("type") == "http.response.body":
-                chunk = message.get("body", b"")
-                if len(response_body) < self.MAX_CAPTURE_BYTES:
-                    response_body.extend(chunk[: self.MAX_CAPTURE_BYTES - len(response_body)])
-                if not message.get("more_body", False):
-                    output_text = ""
-                    try:
-                        decoded = json.loads(bytes(response_body) or b"{}")
-                        output_text = " ".join(self._text_values(decoded))
-                    except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
-                        pass
-
-                    input_text = " ".join(self._text_values(payload))
-                    estimate = estimate_usage(
-                        modality,
-                        input_text=input_text,
-                        output_text=output_text,
-                        width=int(self._number(payload, "width")),
-                        height=int(self._number(payload, "height")),
-                        image_count=max(1, int(self._number(payload, "image_count", 1))),
-                        duration_seconds=self._number(payload, "duration_seconds"),
-                        fps=max(1, int(self._number(payload, "fps", 24))),
-                        include_audio=bool(payload.get("include_audio", False)),
-                    )
-                    if response_start is not None:
-                        headers = list(response_start.get("headers", []))
-                        headers.extend(
-                            [
-                                (b"x-cridergpt-input-tokens", str(estimate.input_tokens).encode()),
-                                (b"x-cridergpt-output-tokens", str(estimate.output_tokens).encode()),
-                                (b"x-cridergpt-media-tokens", str(estimate.media_tokens).encode()),
-                                (b"x-cridergpt-total-tokens", str(estimate.total_tokens).encode()),
-                            ]
-                        )
-                        response_start["headers"] = headers
-                        await send(response_start)
-                    record_usage(
-                        str(payload.get("user_id") or "system"),
-                        str(scope.get("path") or "").removeprefix("/api").strip("/").replace("/", "."),
-                        estimate,
-                        model=str(payload.get("model")) if payload.get("model") else None,
-                        metadata={"status_code": response_start.get("status") if response_start else None},
-                    )
+            if message.get("type") != "http.response.body":
                 await send(message)
                 return
-            await send(message)
+
+            response_messages.append(dict(message))
+            chunk = message.get("body", b"")
+            if len(response_body) < self.MAX_CAPTURE_BYTES:
+                response_body.extend(chunk[: self.MAX_CAPTURE_BYTES - len(response_body)])
+            if message.get("more_body", False):
+                return
+
+            output_text = ""
+            try:
+                decoded = json.loads(bytes(response_body) or b"{}")
+                output_text = " ".join(self._text_values(decoded))
+            except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+                pass
+
+            estimate = estimate_usage(
+                modality,
+                input_text=" ".join(self._text_values(payload)),
+                output_text=output_text,
+                width=int(self._number(payload, "width")),
+                height=int(self._number(payload, "height")),
+                image_count=max(1, int(self._number(payload, "image_count", 1))),
+                duration_seconds=self._number(payload, "duration_seconds"),
+                fps=max(1, int(self._number(payload, "fps", 24))),
+                include_audio=bool(payload.get("include_audio", False)),
+            )
+
+            if response_start is None:
+                response_start = {"type": "http.response.start", "status": 200, "headers": []}
+            headers = list(response_start.get("headers", []))
+            headers.extend(
+                [
+                    (b"x-cridergpt-input-tokens", str(estimate.input_tokens).encode()),
+                    (b"x-cridergpt-output-tokens", str(estimate.output_tokens).encode()),
+                    (b"x-cridergpt-media-tokens", str(estimate.media_tokens).encode()),
+                    (b"x-cridergpt-total-tokens", str(estimate.total_tokens).encode()),
+                ]
+            )
+            response_start["headers"] = headers
+            await send(response_start)
+            for buffered in response_messages:
+                await send(buffered)
+
+            record_usage(
+                str(payload.get("user_id") or "system"),
+                str(scope.get("path") or "").removeprefix("/api").strip("/").replace("/", "."),
+                estimate,
+                model=str(payload.get("model")) if payload.get("model") else None,
+                metadata={"status_code": response_start.get("status")},
+            )
 
         await self.app(scope, replay_receive, capture_send)

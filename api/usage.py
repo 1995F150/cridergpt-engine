@@ -1,4 +1,4 @@
-"""Authenticated token-equivalent estimation endpoint."""
+"""Authenticated token estimation and dashboard administration routes."""
 
 from __future__ import annotations
 
@@ -6,9 +6,13 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from api.auth import validate_api_key
+from api.key_admin import router as key_admin_router
 from usage.tokenizer import Modality, estimate_usage
 
-router = APIRouter(prefix="/usage")
+# Keep the existing /usage/estimate address while also registering the
+# private dashboard's /api/keys and /dashboard/keys routes.
+router = APIRouter()
+router.include_router(key_admin_router)
 
 
 class UsageEstimateRequest(BaseModel):
@@ -22,6 +26,6 @@ class UsageEstimateRequest(BaseModel):
     include_audio: bool = False
 
 
-@router.post("/estimate")
+@router.post("/usage/estimate")
 async def estimate(request: UsageEstimateRequest, _key: str = Depends(validate_api_key)):
     return estimate_usage(**request.model_dump()).as_dict()

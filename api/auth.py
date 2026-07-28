@@ -5,9 +5,11 @@ from __future__ import annotations
 import hmac
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 from fastapi import Header, HTTPException, status
 
+from api.key_store import validate_generated_key
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -19,20 +21,18 @@ class AuthResult:
 
     api_key: str
     method: str
+    metadata: dict[str, Any] | None = None
 
 
 def authenticate_engine_key(
     authorization: str | None = None,
     x_api_key: str | None = None,
 ) -> AuthResult:
-    """Validate either a standard Bearer token or the legacy X-API-Key header."""
-    if not settings.api_keys:
-        logger.error("No engine API key is configured")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Engine authentication is not configured",
-        )
+    """Validate either a standard Bearer token or the legacy X-API-Key header.
 
+    Keys may come from the server environment or from the dashboard-managed,
+    hashed key store under data/api_keys.json.
+    """
     candidate: str | None = None
     method: str | None = None
 
@@ -42,21 +42,26 @@ def authenticate_engine_key(
             candidate = token.strip()
             method = "Bearer"
 
-    # Preserve compatibility with existing Edge Functions and other clients.
     if candidate is None and x_api_key:
         candidate = x_api_key.strip()
         method = "X-API-Key"
 
-    if not candidate or not any(
-        hmac.compare_digest(candidate, key) for key in settings.api_keys
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or missing API key",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    if candidate:
+        if any(hmac.compare_digest(candidate, key) for key in settings.api_keys):
+            return AuthResult(api_key=candidate, method=method or "unknown", metadata={"source": "environment"})
 
-    return AuthResult(api_key=candidate, method=method or "unknown")
+        generated = validate_generated_key(candidate)
+        if generated is not None:
+            return AuthResult(api_key=candidate, method=method or "unknown", metadata={"source": "dashboard", **generated})
+
+    if not settings.api_keys:
+        logger.warning("No environment API key matched; dashboard-generated keys may not exist yet")
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or missing API key",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 async def validate_api_key(

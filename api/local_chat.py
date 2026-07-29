@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import logging
 import uuid
 from typing import Any
 
@@ -19,6 +20,7 @@ from memory.local_chat_store import (
     update_profile,
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -33,6 +35,11 @@ class ProfileRequest(BaseModel):
     user_id: str = Field(min_length=1, max_length=120)
     display_name: str | None = Field(default=None, max_length=120)
     profile: dict[str, Any] = Field(default_factory=dict)
+
+
+def _engine_uuid(kind: str, value: str) -> str:
+    """Return a stable UUID for local identities used by UUID-backed Supabase tables."""
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"cridergpt-local-chat:{kind}:{value}"))
 
 
 @router.get("/chat", response_class=HTMLResponse, include_in_schema=False)
@@ -66,12 +73,21 @@ async def local_chat_send(request: LocalChatRequest):
         f"Known profile data: {profile['profile']}\n"
         "Use this only to personalize the reply for this user."
     )
+
+    # Local labels such as "owner" and "default" are not valid UUIDs. The
+    # engine's Supabase memory tables use UUID columns, so convert those labels
+    # into stable UUID5 values before running the shared Layers 1-10 pipeline.
+    engine_user_id = _engine_uuid("user", request.user_id)
+    engine_conversation_id = _engine_uuid(
+        "conversation", f"{request.user_id}:{conversation_id}"
+    )
+
     append_message(request.user_id, conversation_id, "user", request.message)
     try:
         result = get_agent_response(
             request.message,
-            user_id=f"local:{request.user_id}",
-            conversation_id=f"local:{conversation_id}",
+            user_id=engine_user_id,
+            conversation_id=engine_conversation_id,
             system_prompt=profile_context,
             conversation_history=history,
         )
@@ -79,6 +95,13 @@ async def local_chat_send(request: LocalChatRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except InferenceUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Unexpected local chat failure")
+        raise HTTPException(
+            status_code=500,
+            detail="The local chat engine failed while generating a response. Check the cridergpt-engine service logs.",
+        ) from exc
+
     append_message(request.user_id, conversation_id, "assistant", result.response)
     return {
         "response": result.response,
@@ -111,7 +134,8 @@ input,textarea,button{font:inherit;border-radius:10px;border:1px solid var(--lin
 const esc=s=>String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 function ids(){return{user_id:document.getElementById('userId').value.trim()||'owner',display_name:document.getElementById('displayName').value.trim()||null,conversation_id:document.getElementById('conversationId').value.trim()||'default'}}
 function render(messages){const box=document.getElementById('messages');box.innerHTML=messages.length?'':'<div class="empty">Start a conversation.</div>';for(const m of messages){const d=document.createElement('div');d.className='bubble '+m.role;d.innerHTML=esc(m.content)+'<div class="meta">'+esc(m.role)+'</div>';box.appendChild(d)}window.scrollTo(0,document.body.scrollHeight)}
-async function loadHistory(){const x=ids();const r=await fetch('/local-chat/history?user_id='+encodeURIComponent(x.user_id)+'&conversation_id='+encodeURIComponent(x.conversation_id));const d=await r.json();render(d.messages||[])}
-async function sendMessage(){const input=document.getElementById('message');const text=input.value.trim();if(!text)return;const x=ids();input.value='';const old=[...document.querySelectorAll('.bubble')].map(n=>({role:n.classList.contains('user')?'user':'assistant',content:n.childNodes[0].textContent}));render([...old,{role:'user',content:text},{role:'assistant',content:'Thinking...'}]);try{const r=await fetch('/local-chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...x,message:text})});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Request failed');await loadHistory()}catch(e){render([...old,{role:'user',content:text},{role:'assistant',content:'Error: '+e.message}])}}
+async function readResponse(r){const raw=await r.text();if(!raw)return{};try{return JSON.parse(raw)}catch(_){return{detail:raw.slice(0,500)}}}
+async function loadHistory(){const x=ids();try{const r=await fetch('/local-chat/history?user_id='+encodeURIComponent(x.user_id)+'&conversation_id='+encodeURIComponent(x.conversation_id));const d=await readResponse(r);if(!r.ok)throw new Error(d.detail||('Request failed with status '+r.status));render(d.messages||[])}catch(e){render([{role:'assistant',content:'Error loading history: '+e.message}])}}
+async function sendMessage(){const input=document.getElementById('message');const text=input.value.trim();if(!text)return;const x=ids();input.value='';const old=[...document.querySelectorAll('.bubble')].map(n=>({role:n.classList.contains('user')?'user':'assistant',content:n.childNodes[0].textContent}));render([...old,{role:'user',content:text},{role:'assistant',content:'Thinking...'}]);try{const r=await fetch('/local-chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...x,message:text})});const d=await readResponse(r);if(!r.ok)throw new Error(d.detail||('Request failed with status '+r.status));await loadHistory()}catch(e){render([...old,{role:'user',content:text},{role:'assistant',content:'Error: '+e.message}])}}
 document.getElementById('message').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}});loadHistory();
 </script></body></html>"""

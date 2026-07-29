@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from api.auth import authenticate_engine_key, validate_api_key
 from api.chat import router as chat_router
 from api.image import router as image_router
+from api.local_chat import router as local_chat_router
 from api.usage import router as usage_router
 from api.video import router as video_router
 from config import settings
@@ -31,12 +32,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 STARTED_AT = datetime.now(timezone.utc)
-app = FastAPI(title="CriderGPT Engine", version="3.4.0")
+app = FastAPI(title="CriderGPT Engine", version="3.5.0")
 app.add_middleware(UsageMeterMiddleware)
 
-for router, tag in ((chat_router, "chat"), (image_router, "image"), (video_router, "video"), (usage_router, "usage")):
+for router, tag in (
+    (chat_router, "chat"),
+    (local_chat_router, "local-chat"),
+    (image_router, "image"),
+    (video_router, "video"),
+    (usage_router, "usage"),
+):
     app.include_router(router, tags=[tag])
-    app.include_router(router, prefix="/api", tags=[tag], include_in_schema=False)
+    if router is not local_chat_router:
+        app.include_router(router, prefix="/api", tags=[tag], include_in_schema=False)
 
 
 class ConfigReloadRequest(BaseModel):
@@ -102,6 +110,8 @@ def _service_health() -> dict[str, Any]:
         },
         "capabilities": {
             "chat": True,
+            "local_chat_ui": True,
+            "local_chat_memory": True,
             "image_generation": True,
             "image_analysis": True,
             "video_generation": True,
@@ -153,6 +163,7 @@ async def root():
         "service": "cridergpt-engine",
         "status": "running",
         "version": app.version,
+        "chat_ui": "/chat",
         "dashboard": "/dashboard",
         "docs": "/docs",
     }
@@ -234,7 +245,7 @@ section{margin-top:18px}.row{display:flex;gap:10px;flex-wrap:wrap}input,textarea
 </style>
 </head>
 <body><main>
-<div class="top"><div><h1>CriderGPT Engine</h1><div class="muted">Local control and diagnostics dashboard</div></div><div class="links"><a href="/docs">API Docs</a><a href="/api/health">Raw Health</a></div></div>
+<div class="top"><div><h1>CriderGPT Engine</h1><div class="muted">Local control and diagnostics dashboard</div></div><div class="links"><a href="/chat">Local Chat</a><a href="/docs">API Docs</a><a href="/api/health">Raw Health</a></div></div>
 <div class="grid">
 <div class="card"><h2>Engine status</h2><div class="value status"><span id="statusDot" class="dot"></span><span id="status">Loading</span></div></div>
 <div class="card"><h2>Version</h2><div id="version" class="value">—</div></div>
@@ -247,16 +258,23 @@ section{margin-top:18px}.row{display:flex;gap:10px;flex-wrap:wrap}input,textarea
 </div>
 <section class="card"><h2>API authentication test</h2><div class="row"><input id="apiKey" type="password" placeholder="Paste engine API key"><button onclick="testAuth('Bearer')">Test Bearer</button><button class="secondary" onclick="testAuth('X-API-Key')">Test X-API-Key</button></div><pre id="authResult">Enter the configured engine key to test authentication.</pre></section>
 <section class="card"><h2>Configuration control</h2><div class="row"><input id="configVersion" type="number" placeholder="Config version (leave blank for latest)"><button onclick="reloadConfig()">Reload configuration</button><button class="secondary" onclick="loadHealth()">Refresh health</button></div><pre id="controlResult">No action run yet.</pre></section>
-<section class="card"><h2>Endpoint reference</h2><pre>Health: GET /api/health\nAuthentication: GET /api/auth/check\nChat: POST /api/chat\nReload config: POST /api/config/reload\nInteractive API: GET /docs</pre></section>
+<section class="card"><h2>Endpoint reference</h2><pre>Health: GET /api/health
+Authentication: GET /api/auth/check
+Local Chat UI: GET /chat
+Local Chat API: POST /local-chat/send
+Chat API: POST /api/chat
+Reload config: POST /api/config/reload
+Interactive API: GET /docs</pre></section>
 </main>
 <script>
 const pretty=v=>JSON.stringify(v,null,2);const keyHeaders=(method)=>{const key=document.getElementById('apiKey').value.trim();return method==='Bearer'?{'Authorization':'Bearer '+key}:{'X-API-Key':key}};
 function formatUptime(s){s=Number(s||0);const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);return `${d}d ${h}h ${m}m`}
 async function loadHealth(){try{const r=await fetch('/api/health');const d=await r.json();document.getElementById('status').textContent=d.status;document.getElementById('statusDot').className='dot '+(d.ready?'good':'');document.getElementById('version').textContent=d.engine_version;document.getElementById('model').textContent=d.active_model;document.getElementById('uptime').textContent=formatUptime(d.uptime_seconds);document.getElementById('ollama').textContent=d.dependencies.ollama?'Online':'Offline';document.getElementById('supabase').textContent=d.dependencies.supabase?'Configured':'Not configured';document.getElementById('authConfigured').textContent=d.dependencies.authentication?'Configured':'Not configured';document.getElementById('publicUrl').textContent=d.public_url||'—'}catch(e){document.getElementById('status').textContent='Unavailable'}}
-async function testAuth(method){const out=document.getElementById('authResult');try{const r=await fetch('/api/auth/check',{headers:keyHeaders(method)});const text=await r.text();let data;try{data=JSON.parse(text)}catch{data=text}out.textContent=pretty({status:r.status,response:data})}catch(e){out.textContent=String(e)}}
-async function reloadConfig(){const out=document.getElementById('controlResult');const value=document.getElementById('configVersion').value;const body=value?{config_version:Number(value)}:{};try{const r=await fetch('/api/config/reload',{method:'POST',headers:{'Content-Type':'application/json',...keyHeaders('Bearer')},body:JSON.stringify(body)});const text=await r.text();let data;try{data=JSON.parse(text)}catch{data=text}out.textContent=pretty({status:r.status,response:data});loadHealth()}catch(e){out.textContent=String(e)}}
-loadHealth();setInterval(loadHealth,30000);
-</script></body></html>"""
+async function testAuth(method){const r=await fetch('/api/auth/check',{headers:keyHeaders(method)});let d;try{d=await r.json()}catch{d={detail:await r.text()}}document.getElementById('authResult').textContent=pretty({status:r.status,response:d})}
+async function reloadConfig(){const v=document.getElementById('configVersion').value;const body=v?{config_version:Number(v)}:{};const r=await fetch('/api/config/reload',{method:'POST',headers:{'Content-Type':'application/json',...keyHeaders('Bearer')},body:JSON.stringify(body)});let d;try{d=await r.json()}catch{d={detail:await r.text()}}document.getElementById('controlResult').textContent=pretty({status:r.status,response:d});if(r.ok)loadHealth()}
+loadHealth();
+</script>
+</body></html>"""
 
 
 @app.get("/dashboard", response_class=HTMLResponse, include_in_schema=False)

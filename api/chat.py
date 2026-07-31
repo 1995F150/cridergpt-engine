@@ -18,7 +18,7 @@ router = APIRouter()
 
 
 class ChatRequest(BaseModel):
-    message: str = Field(min_length=1, max_length=100_000)
+    message: str = Field(min_length=1, max_length=20_000)
     system_prompt: str | None = Field(default=None, max_length=150_000)
     conversation_history: list[dict[str, Any]] = Field(default_factory=list)
     user_id: str | None = None

@@ -1,0 +1,9 @@
+{
+  "name": "CriderGPT",
+  "version": "0.1.0",
+  "stage": 6,
+  "runtime": "python3",
+  "status": "runtime-smoke-test",
+  "weights_in_repository": false,
+  "notes": "Source runtime is tracked in GitHub. Trained checkpoint weights must be deployed separately before this becomes a real language-model backend."
+}

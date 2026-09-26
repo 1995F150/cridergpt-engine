@@ -150,7 +150,7 @@ def main() -> None:
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,
         save_total_limit=3,
-        eval_strategy="steps" if has_validation else "no",
+        evaluation_strategy="steps" if has_validation else "no",
         eval_steps=args.save_steps if has_validation else None,
         bf16=args.bf16 and torch.cuda.is_available(),
         fp16=args.fp16 and torch.cuda.is_available(),
@@ -166,7 +166,7 @@ def main() -> None:
         train_dataset=tokenized["train"],
         eval_dataset=tokenized.get("validation"),
         data_collator=collator,
-        processing_class=tokenizer,
+        tokenizer=tokenizer,
     )
 
     trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)

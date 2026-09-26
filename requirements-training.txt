@@ -1,0 +1,9 @@
+-r requirements-dev.txt
+
+# Optional model-development stack. Not installed by production CI/runtime.
+torch>=2.4,<3
+transformers>=4.44,<5
+datasets>=3,<5
+tokenizers>=0.20,<1
+accelerate>=1,<2
+safetensors>=0.4,<1

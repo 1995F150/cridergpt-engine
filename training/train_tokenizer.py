@@ -48,7 +48,9 @@ def iter_corpus(paths: list[Path], text_field: str) -> Iterable[str]:
         raise ValueError(f"Unsupported input type: {path}")
 
 
-def build_tokenizer(vocab_size: int, min_frequency: int) -> Tokenizer:
+def build_tokenizer(
+    vocab_size: int, min_frequency: int
+) -> tuple[Tokenizer, trainers.BpeTrainer]:
     tokenizer = Tokenizer(models.BPE(unk_token="<|unk|>"))
     tokenizer.normalizer = normalizers.NFC()
     tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
@@ -60,8 +62,7 @@ def build_tokenizer(vocab_size: int, min_frequency: int) -> Tokenizer:
         special_tokens=SPECIAL_TOKENS,
         show_progress=True,
     )
-    tokenizer._crider_trainer = trainer  # type: ignore[attr-defined]
-    return tokenizer
+    return tokenizer, trainer
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -82,8 +83,7 @@ def main() -> None:
     if args.min_frequency < 1:
         raise SystemExit("--min-frequency must be at least 1")
 
-    tokenizer = build_tokenizer(args.vocab_size, args.min_frequency)
-    trainer = tokenizer._crider_trainer  # type: ignore[attr-defined]
+    tokenizer, trainer = build_tokenizer(args.vocab_size, args.min_frequency)
     tokenizer.train_from_iterator(
         iter_corpus(args.inputs, args.text_field),
         trainer=trainer,

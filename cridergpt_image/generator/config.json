@@ -1,0 +1,13 @@
+{
+  "component": "CriderGPT Image Latent Generator",
+  "version": "0.1.0-stage5",
+  "status": "architecture_untrained",
+  "latent_channels": 4,
+  "latent_resolution": 32,
+  "text_embedding_dim": 256,
+  "base_channels": 128,
+  "time_embedding_dim": 256,
+  "objective": "predict_added_noise",
+  "conditioning": "text_cross_attention",
+  "notes": "Stage 5 defines CriderGPT's own conditional latent denoiser. It consumes noisy Stage 4 latents, timestep information, and Stage 3 text embeddings. No pretrained generator weights are loaded."
+}

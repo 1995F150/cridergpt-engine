@@ -1,0 +1,18 @@
+{
+  "component": "CriderGPT Image Text Conditioning",
+  "version": "0.1.0-stage3",
+  "vocab_size_target": 8192,
+  "max_prompt_tokens": 64,
+  "embedding_dim": 256,
+  "encoder_layers": 4,
+  "attention_heads": 4,
+  "feedforward_dim": 1024,
+  "dropout": 0.1,
+  "special_tokens": {
+    "pad": "<pad>",
+    "unk": "<unk>",
+    "bos": "<bos>",
+    "eos": "<eos>"
+  },
+  "notes": "Initial Stage 3 architecture contract. Vocabulary is trained only from authorized CriderGPT Image caption data; no external pretrained tokenizer or text encoder is substituted."
+}

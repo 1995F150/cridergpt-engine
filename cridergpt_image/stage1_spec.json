@@ -1,0 +1,43 @@
+{
+  "project": "CriderGPT Image",
+  "version": "0.1.0-stage1",
+  "stage": 1,
+  "status": "specification",
+  "goal": "Train and run a CriderGPT-owned text-to-image model locally without a hosted AI inference dependency.",
+  "v1_scope": {
+    "input": "UTF-8 text prompt",
+    "output": "PNG image",
+    "baseline_resolution": 256,
+    "stretch_resolution": 512,
+    "generation_mode": "text-to-image",
+    "inference_target": "local CriderGPT-controlled GPU/server",
+    "offline_inference_required": true
+  },
+  "independence_requirements": {
+    "external_ai_api_for_inference": false,
+    "hosted_fallback_model": false,
+    "hardcoded_generated_outputs": false,
+    "cridergpt_owned_checkpoint_required": true,
+    "local_tokenizer_and_text_conditioning_required": true
+  },
+  "reproducibility": {
+    "seeded_generation_required": true,
+    "model_version_recorded": true,
+    "checkpoint_hash_recorded": true,
+    "training_config_recorded": true,
+    "dataset_manifest_recorded": true
+  },
+  "initial_inference_contract": {
+    "required_inputs": ["prompt"],
+    "optional_inputs": ["seed", "width", "height", "steps"],
+    "required_outputs": ["image", "seed", "model_version", "generation_time_ms"]
+  },
+  "non_goals_for_stage1": [
+    "training the model",
+    "video generation",
+    "4K generation",
+    "production customer access",
+    "claiming image quality before evaluation"
+  ],
+  "next_stage": "Build the licensed/owned image-caption dataset ingestion, validation, deduplication, preprocessing, provenance, and train/validation split pipeline."
+}

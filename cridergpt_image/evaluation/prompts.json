@@ -1,0 +1,9 @@
+[
+  {"id":"basic_color_object","prompt":"A red ball on a blue table."},
+  {"id":"farm_scene","prompt":"Three chickens standing beside a wooden barn."},
+  {"id":"server_rack","prompt":"A futuristic computer server rack with blue lights."},
+  {"id":"vehicle_weather","prompt":"A yellow school bus driving through falling snow."},
+  {"id":"two_objects","prompt":"A black dog sitting beside a white cat."},
+  {"id":"nature_scene","prompt":"A deer standing near a mountain river at sunrise."},
+  {"id":"brand_concept","prompt":"A futuristic blue CriderGPT artificial intelligence emblem."}
+]

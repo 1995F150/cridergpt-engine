@@ -1,0 +1,18 @@
+{
+  "component": "CriderGPT Image Latent Autoencoder",
+  "version": "0.1.0-stage4",
+  "input_channels": 3,
+  "input_resolution": 256,
+  "latent_channels": 4,
+  "downsample_factor": 8,
+  "latent_resolution": 32,
+  "base_channels": 64,
+  "channel_multipliers": [1, 2, 4],
+  "normalization": "group_norm",
+  "activation": "silu",
+  "output_activation": "tanh",
+  "pixel_range": [-1.0, 1.0],
+  "objective": "reconstruction",
+  "status": "architecture_untrained",
+  "notes": "Stage 4 establishes CriderGPT's own image encoder/decoder. No pretrained autoencoder weights are used. Training and checkpoint creation require the authorized Stage 2 image dataset."
+}

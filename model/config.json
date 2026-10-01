@@ -1,9 +1,11 @@
 {
-  "name": "CriderGPT",
-  "version": "0.1.0",
+  "name": "CriderGPT 1.0",
+  "family": "CriderGPT Native",
+  "version": "1.0.0",
   "stage": 6,
   "runtime": "python3",
-  "status": "runtime-smoke-test",
+  "status": "checkpoint-required",
+  "checkpoint_path": "model/checkpoint",
   "weights_in_repository": false,
-  "notes": "Source runtime is tracked in GitHub. Trained checkpoint weights must be deployed separately before this becomes a real language-model backend."
+  "notes": "CriderGPT 1.0 native local language-model configuration. Train the model and place the resulting Hugging Face-compatible tokenizer/config/weights in model/checkpoint."
 }

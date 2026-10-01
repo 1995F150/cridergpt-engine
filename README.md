@@ -274,3 +274,29 @@ CriderGPT Engine is intended to power:
 - API access for other CriderGPT products
 
 It is not intended to be an unauthenticated public Ollama proxy.
+
+
+## CriderGPT Native 2.0 training
+
+The versioned native model training path preserves the first trained checkpoint
+and writes 2.0 separately:
+
+```text
+model/checkpoint                    CriderGPT 1.0 (local, gitignored)
+model/cridergpt-2.0/checkpoint      CriderGPT 2.0 (local, gitignored)
+```
+
+CriderGPT 2.0 combines the prepared OASST1 corpus with curated identity and
+behavior data under `training_data/cridergpt2/`. Live writing samples can be
+exported from Supabase into the gitignored local training area:
+
+```bash
+python training/export_cridergpt2_context.py
+python training/build_cridergpt2.py --help
+```
+
+The builder does not run automatically. Actual training only begins when
+`python training/build_cridergpt2.py` is intentionally executed.
+
+The 2.0 terminal runtime formats prompts with user/assistant role markers and
+removes leaked role markers from displayed model output.

@@ -87,11 +87,15 @@ def main() -> int:
 
     python = sys.executable
 
+    normalized = args.work_dir / "normalized.jsonl"
+    normalized_count = normalize_input_records(args.inputs, normalized)
+    print(f"Normalized {normalized_count:,} training records.")
+
     run([
         python, "-m", "training.prepare_dataset",
-        *[str(p) for p in args.inputs],
+        str(normalized),
         "--output-dir", str(prepared),
-        "--text-field", args.text_field,
+        "--text-field", "text",
         "--validation-ratio", str(args.validation_ratio),
         "--seed", str(args.seed),
     ])

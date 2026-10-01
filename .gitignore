@@ -9,3 +9,4 @@ __pycache__/
 data/
 artifacts/
 checkpoints/
+model/checkpoint/\nmodel/cridergpt-2.0/checkpoint/\n

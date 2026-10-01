@@ -1,15 +1,8 @@
-"""Train or fine-tune a decoder-only CriderGPT language model.
-
-Two modes are supported:
-1. From scratch: initialize a small GPT-style transformer using the CriderGPT tokenizer.
-2. Fine-tune: load an existing causal LM and continue training on CriderGPT data.
-
-This is a development utility, not part of the production FastAPI process.
-"""
-
+"""Train or fine-tune a decoder-only CriderGPT language model."""
 from __future__ import annotations
 
 import argparse
+import inspect
 from pathlib import Path
 
 import torch
@@ -32,10 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--validation-file", type=Path)
     parser.add_argument("--tokenizer", type=str, required=True)
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/model"))
-    parser.add_argument(
-        "--base-model",
-        help="Optional Hugging Face model name/path. Omit to train from scratch.",
-    )
+    parser.add_argument("--base-model")
     parser.add_argument("--block-size", type=int, default=512)
     parser.add_argument("--epochs", type=float, default=1.0)
     parser.add_argument("--batch-size", type=int, default=2)
@@ -46,12 +36,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--save-steps", type=int, default=500)
     parser.add_argument("--logging-steps", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
-
-    # From-scratch architecture controls.
     parser.add_argument("--layers", type=int, default=8)
     parser.add_argument("--heads", type=int, default=8)
     parser.add_argument("--hidden-size", type=int, default=512)
-
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--gradient-checkpointing", action="store_true")
@@ -70,7 +57,6 @@ def load_training_data(train_file: Path, validation_file: Path | None):
     train_kind = kind(train_file)
     if validation_file and kind(validation_file) != train_kind:
         raise ValueError("Train and validation files must use the same file format")
-
     return load_dataset(train_kind, data_files=files)
 
 
@@ -111,14 +97,12 @@ def main() -> None:
         tokenizer.pad_token = tokenizer.eos_token
 
     raw = load_training_data(args.train_file, args.validation_file)
-
-    text_column = "text"
-    if text_column not in raw["train"].column_names:
+    if "text" not in raw["train"].column_names:
         raise SystemExit("Training data must contain a 'text' column")
 
     def tokenize(batch):
         return tokenizer(
-            batch[text_column],
+            batch["text"],
             truncation=True,
             max_length=args.block_size,
             add_special_tokens=True,
@@ -138,7 +122,7 @@ def main() -> None:
         model.config.use_cache = False
 
     has_validation = "validation" in tokenized
-    training_args = TrainingArguments(
+    kwargs = dict(
         output_dir=str(args.output_dir),
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
@@ -150,7 +134,6 @@ def main() -> None:
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,
         save_total_limit=3,
-        evaluation_strategy="steps" if has_validation else "no",
         eval_steps=args.save_steps if has_validation else None,
         bf16=args.bf16 and torch.cuda.is_available(),
         fp16=args.fp16 and torch.cuda.is_available(),
@@ -158,17 +141,26 @@ def main() -> None:
         seed=args.seed,
         data_seed=args.seed,
     )
+    ta_params = inspect.signature(TrainingArguments.__init__).parameters
+    strategy_key = "eval_strategy" if "eval_strategy" in ta_params else "evaluation_strategy"
+    kwargs[strategy_key] = "steps" if has_validation else "no"
+    training_args = TrainingArguments(**kwargs)
 
     collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
-    trainer = Trainer(
+    trainer_kwargs = dict(
         model=model,
         args=training_args,
         train_dataset=tokenized["train"],
         eval_dataset=tokenized.get("validation"),
         data_collator=collator,
-        tokenizer=tokenizer,
     )
+    tr_params = inspect.signature(Trainer.__init__).parameters
+    if "processing_class" in tr_params:
+        trainer_kwargs["processing_class"] = tokenizer
+    elif "tokenizer" in tr_params:
+        trainer_kwargs["tokenizer"] = tokenizer
 
+    trainer = Trainer(**trainer_kwargs)
     trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -177,7 +169,6 @@ def main() -> None:
 
     metrics = trainer.evaluate() if has_validation else {}
     trainer.save_metrics("eval", metrics)
-
     print(f"Model saved to {args.output_dir.resolve()}")
     if metrics:
         print(f"Validation metrics: {metrics}")

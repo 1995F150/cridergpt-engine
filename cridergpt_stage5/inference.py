@@ -17,6 +17,16 @@ USER_TAG = "<|user|>"
 ASSISTANT_TAG = "<|assistant|>"
 EOS_TAG = "<|eos|>"
 
+# A tiny native model should not have to rediscover its stable product identity
+# from a much larger general-purpose corpus on every prompt. These examples are
+# intentionally short and use the exact chat format seen during training.
+IDENTITY_PRIMER = (
+    f"{USER_TAG}\nWhat is your name?\n{ASSISTANT_TAG}\nMy name is CriderGPT 2.0.\n{EOS_TAG}\n"
+    f"{USER_TAG}\nWho are you?\n{ASSISTANT_TAG}\nI am CriderGPT 2.0, a conversational AI in the CriderGPT Native model family.\n{EOS_TAG}\n"
+    f"{USER_TAG}\nWho created CriderGPT?\n{ASSISTANT_TAG}\nJessie Crider created CriderGPT.\n{EOS_TAG}\n"
+    f"{USER_TAG}\nWho is Jessie Crider?\n{ASSISTANT_TAG}\nJessie Crider is the founder and owner of CriderGPT.\n{EOS_TAG}\n"
+)
+
 
 class Backend(Protocol):
     def generate(self, prompt: str) -> str: ...
@@ -34,7 +44,7 @@ def format_chat_prompt(prompt: str) -> str:
     prompt = prompt.strip()
     if not prompt:
         raise ValueError("prompt cannot be empty")
-    return f"{USER_TAG}\n{prompt}\n{ASSISTANT_TAG}\n"
+    return f"{IDENTITY_PRIMER}{USER_TAG}\n{prompt}\n{ASSISTANT_TAG}\n"
 
 
 def clean_generated_text(text: str) -> str:
@@ -52,7 +62,7 @@ def clean_generated_text(text: str) -> str:
 class TransformersBackend:
     """Local Hugging Face Transformers causal-language-model backend."""
 
-    def __init__(self, checkpoint: Path, max_new_tokens: int = 128) -> None:
+    def __init__(self, checkpoint: Path, max_new_tokens: int = 96) -> None:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -60,16 +70,10 @@ class TransformersBackend:
         self.checkpoint = checkpoint
         self.max_new_tokens = max_new_tokens
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            str(checkpoint), local_files_only=True
-        )
-        self.model = AutoModelForCausalLM.from_pretrained(
-            str(checkpoint), local_files_only=True
-        )
+        self.tokenizer = AutoTokenizer.from_pretrained(str(checkpoint), local_files_only=True)
+        self.model = AutoModelForCausalLM.from_pretrained(str(checkpoint), local_files_only=True)
         self.model.to(self.device)
         self.model.eval()
-
         if self.tokenizer.pad_token_id is None and self.tokenizer.eos_token_id is not None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
@@ -78,18 +82,15 @@ class TransformersBackend:
         inputs = self.tokenizer(rendered, return_tensors="pt")
         inputs = {key: value.to(self.device) for key, value in inputs.items()}
         input_length = inputs["input_ids"].shape[-1]
-
         with self.torch.inference_mode():
             output = self.model.generate(
                 **inputs,
                 max_new_tokens=self.max_new_tokens,
-                do_sample=True,
-                temperature=0.8,
-                top_p=0.95,
+                do_sample=False,
+                repetition_penalty=1.08,
                 pad_token_id=self.tokenizer.pad_token_id,
                 eos_token_id=self.tokenizer.eos_token_id,
             )
-
         generated = output[0][input_length:]
         decoded = self.tokenizer.decode(generated, skip_special_tokens=True)
         return clean_generated_text(decoded)
@@ -98,13 +99,7 @@ class TransformersBackend:
 def load_config() -> dict:
     if MODEL_CONFIG.exists():
         return json.loads(MODEL_CONFIG.read_text(encoding="utf-8"))
-    return {
-        "name": "CriderGPT 2.0",
-        "family": "CriderGPT Native",
-        "version": "2.0.0",
-        "stage": 6,
-        "checkpoint_path": "model/cridergpt-2.0/checkpoint",
-    }
+    return {"name": "CriderGPT 2.0", "family": "CriderGPT Native", "version": "2.0.0", "stage": 6, "checkpoint_path": "model/cridergpt-2.0/checkpoint"}
 
 
 def checkpoint_path(config: dict) -> Path:
@@ -115,12 +110,11 @@ def checkpoint_path(config: dict) -> Path:
     return DEFAULT_CHECKPOINT
 
 
-def load_backend(config: dict, max_new_tokens: int = 128) -> Backend:
+def load_backend(config: dict, max_new_tokens: int = 96) -> Backend:
     checkpoint = checkpoint_path(config)
     if not checkpoint.exists():
         print(f"Backend: smoke-test (checkpoint not found: {checkpoint})")
         return EchoBackend("checkpoint directory not found")
-
     try:
         backend = TransformersBackend(checkpoint, max_new_tokens=max_new_tokens)
         print(f"Backend: local Transformers model ({checkpoint})")
@@ -163,15 +157,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run CriderGPT locally")
     parser.add_argument("prompt", nargs="*", help="One prompt to send to the model")
     parser.add_argument("--chat", action="store_true", help="Start interactive terminal chat")
-    parser.add_argument("--max-new-tokens", type=int, default=128)
+    parser.add_argument("--max-new-tokens", type=int, default=96)
     args = parser.parse_args()
-
     config = load_config()
     model_name = config.get("name", "CriderGPT 2.0")
     print(f"CriderGPT runtime: {model_name}")
     print(f"Stage: {config.get('stage', 6)}")
     backend = load_backend(config, max_new_tokens=args.max_new_tokens)
-
     prompt = " ".join(args.prompt).strip()
     if args.chat or not prompt:
         interactive_chat(backend, model_name)

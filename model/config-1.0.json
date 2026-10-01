@@ -1,0 +1,11 @@
+{
+  "name": "CriderGPT 1.0",
+  "family": "CriderGPT Native",
+  "version": "1.0.0",
+  "stage": 6,
+  "runtime": "python3",
+  "status": "preserved-local-checkpoint",
+  "checkpoint_path": "model/checkpoint",
+  "weights_in_repository": false,
+  "notes": "Versioned reference for the first trained CriderGPT Native checkpoint."
+}

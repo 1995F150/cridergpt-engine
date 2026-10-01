@@ -1,18 +1,16 @@
-"""One-command builder for the CriderGPT Native ~4.27M parameter text model.
+"""One-command builder for CriderGPT 1.0 / CriderGPT Native.
 
 This orchestrates the existing CriderGPT training utilities:
-1. prepare owned/licensed text/JSONL into train/validation splits
-2. train the CriderGPT byte-level BPE tokenizer
-3. train a decoder-only GPT-style language model from scratch
-4. save the Hugging Face-compatible checkpoint to model/checkpoint
+1. normalize supported training data schemas into {"text": ...} JSONL
+2. prepare deterministic train/validation splits
+3. train the CriderGPT byte-level BPE tokenizer
+4. train a decoder-only GPT-style language model from scratch
+5. verify and install the checkpoint into model/checkpoint
 
-The architecture defaults are intentionally chosen to match the original
-CriderGPT Native target: 4 layers, 256 hidden size, 4 heads, 4096 vocabulary,
-and a 256-token context window (~4.27M trainable parameters).
-
-This script does NOT download another model and does NOT use a cloud AI API.
+Defaults target the original CriderGPT Native size:
+4 layers, 256 hidden size, 4 heads, 4096 vocabulary, 256-token context.
+This script does not download another model and does not use a cloud AI API.
 """
-
 from __future__ import annotations
 
 import argparse
@@ -34,13 +32,7 @@ def run(cmd: list[str]) -> None:
 
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument(
-        "inputs",
-        nargs="+",
-        type=Path,
-        help="Owned/licensed .txt or .jsonl training files.",
-    )
-    p.add_argument("--text-field", default="text")
+    p.add_argument("inputs", nargs="+", type=Path, help="Owned/licensed .txt or .jsonl training files.")
     p.add_argument("--work-dir", type=Path, default=DEFAULT_WORK)
     p.add_argument("--checkpoint-dir", type=Path, default=DEFAULT_CHECKPOINT)
     p.add_argument("--validation-ratio", type=float, default=0.05)
@@ -54,12 +46,80 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--gradient-accumulation", type=int, default=4)
     p.add_argument("--learning-rate", type=float, default=3e-4)
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument(
-        "--overwrite-checkpoint",
-        action="store_true",
-        help="Allow replacing model/checkpoint after training succeeds.",
-    )
+    p.add_argument("--overwrite-checkpoint", action="store_true")
     return p
+
+
+def normalize_input_records(paths: list[Path], output: Path) -> int:
+    """Normalize supported CriderGPT datasets to {"text": "..."} JSONL."""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    count = 0
+
+    def emit(handle, value: str) -> None:
+        nonlocal count
+        value = value.strip()
+        if value:
+            handle.write(json.dumps({"text": value}, ensure_ascii=False) + "\n")
+            count += 1
+
+    with output.open("w", encoding="utf-8") as out:
+        for path in paths:
+            suffix = path.suffix.lower()
+            if suffix in {".txt", ".text"}:
+                with path.open("r", encoding="utf-8") as src:
+                    for line in src:
+                        emit(out, line)
+                continue
+
+            if suffix not in {".jsonl", ".json"}:
+                raise SystemExit(f"Unsupported training input: {path}")
+
+            with path.open("r", encoding="utf-8") as src:
+                for line_no, line in enumerate(src, start=1):
+                    if not line.strip():
+                        continue
+                    try:
+                        row = json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        raise SystemExit(f"{path}:{line_no}: invalid JSON: {exc}") from exc
+
+                    text = row.get("text")
+                    if isinstance(text, str):
+                        emit(out, text)
+                        continue
+
+                    instruction = row.get("instruction")
+                    response = row.get("output")
+                    if isinstance(instruction, str) and isinstance(response, str):
+                        extra = row.get("input")
+                        prompt = instruction.strip()
+                        if isinstance(extra, str) and extra.strip():
+                            prompt += "\n" + extra.strip()
+                        emit(out, f"<|user|>\n{prompt}\n<|assistant|>\n{response.strip()}\n<|eos|>")
+                        continue
+
+                    messages = row.get("messages")
+                    if isinstance(messages, list):
+                        parts = []
+                        for msg in messages:
+                            if not isinstance(msg, dict):
+                                continue
+                            role = msg.get("role")
+                            content = msg.get("content")
+                            if role in {"user", "assistant"} and isinstance(content, str) and content.strip():
+                                parts.append(f"<|{role}|>\n{content.strip()}")
+                        if parts:
+                            emit(out, "\n".join(parts) + "\n<|eos|>")
+                            continue
+
+                    raise SystemExit(
+                        f"{path}:{line_no}: unsupported JSON schema; expected text, "
+                        "instruction/output, or messages"
+                    )
+
+    if count == 0:
+        raise SystemExit("No usable training records were found.")
+    return count
 
 
 def main() -> int:
@@ -70,6 +130,9 @@ def main() -> int:
         raise SystemExit("Training input(s) not found: " + ", ".join(missing))
     if args.hidden_size % args.heads:
         raise SystemExit("--hidden-size must be divisible by --heads")
+    if not 0 <= args.validation_ratio < 1:
+        raise SystemExit("--validation-ratio must be >= 0 and < 1")
+
     if args.checkpoint_dir.exists() and any(args.checkpoint_dir.iterdir()) and not args.overwrite_checkpoint:
         raise SystemExit(
             f"{args.checkpoint_dir} already contains files. "
@@ -80,16 +143,15 @@ def main() -> int:
     tokenizer = args.work_dir / "tokenizer"
     trained = args.work_dir / "trained"
 
-    # Never silently reuse stale generated artifacts.
     if args.work_dir.exists():
         shutil.rmtree(args.work_dir)
     args.work_dir.mkdir(parents=True, exist_ok=True)
 
-    python = sys.executable
-
     normalized = args.work_dir / "normalized.jsonl"
     normalized_count = normalize_input_records(args.inputs, normalized)
     print(f"Normalized {normalized_count:,} training records.")
+
+    python = sys.executable
 
     run([
         python, "-m", "training.prepare_dataset",
@@ -108,7 +170,7 @@ def main() -> int:
         "--min-frequency", "2",
     ])
 
-    train_cmd = [
+    run([
         python, "-m", "training.train_causal_lm",
         "--train-file", str(prepared / "train.jsonl"),
         "--validation-file", str(prepared / "validation.jsonl"),
@@ -123,10 +185,8 @@ def main() -> int:
         "--gradient-accumulation", str(args.gradient_accumulation),
         "--learning-rate", str(args.learning_rate),
         "--seed", str(args.seed),
-    ]
-    run(train_cmd)
+    ])
 
-    # Verify that the actual trained artifact can be loaded locally before deployment.
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tok = AutoTokenizer.from_pretrained(str(trained), local_files_only=True)
@@ -139,7 +199,9 @@ def main() -> int:
     shutil.copytree(trained, args.checkpoint_dir)
 
     manifest = {
-        "name": "CriderGPT Native",
+        "name": "CriderGPT 1.0",
+        "family": "CriderGPT Native",
+        "version": "1.0.0",
         "architecture": {
             "type": "decoder-only GPT-style transformer",
             "layers": args.layers,
@@ -156,6 +218,7 @@ def main() -> int:
             "gradient_accumulation": args.gradient_accumulation,
             "learning_rate": args.learning_rate,
             "seed": args.seed,
+            "normalized_records": normalized_count,
             "inputs": [str(p.resolve()) for p in args.inputs],
         },
         "checkpoint": str(args.checkpoint_dir.resolve()),
@@ -164,7 +227,7 @@ def main() -> int:
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
 
-    print("\nCriderGPT Native build complete.")
+    print("\nCriderGPT 1.0 build complete.")
     print(f"Parameters: {parameters:,}")
     print(f"Tokenizer vocabulary: {len(tok):,}")
     print(f"Checkpoint: {args.checkpoint_dir.resolve()}")

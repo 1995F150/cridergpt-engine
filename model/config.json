@@ -1,11 +1,12 @@
 {
-  "name": "CriderGPT 1.0",
+  "name": "CriderGPT 2.0",
   "family": "CriderGPT Native",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "stage": 6,
   "runtime": "python3",
-  "status": "checkpoint-required",
-  "checkpoint_path": "model/checkpoint",
+  "status": "training-upgrade-ready",
+  "checkpoint_path": "model/cridergpt-2.0/checkpoint",
+  "previous_checkpoint_path": "model/checkpoint",
   "weights_in_repository": false,
-  "notes": "CriderGPT 1.0 native local language-model configuration. Train the model and place the resulting Hugging Face-compatible tokenizer/config/weights in model/checkpoint."
+  "notes": "CriderGPT 2.0 uses a separate checkpoint and preserves the local CriderGPT 1.0 checkpoint at model/checkpoint."
 }

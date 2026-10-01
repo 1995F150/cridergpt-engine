@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""CriderGPT local inference runtime.
-
-Loads a Hugging Face-compatible checkpoint when available and falls back to the
-smoke-test echo backend when model weights have not been copied to this machine.
-"""
+"""CriderGPT local inference runtime for versioned native checkpoints."""
 from __future__ import annotations
 
 import argparse
@@ -16,7 +12,10 @@ from typing import Protocol
 ROOT = Path(__file__).resolve().parent
 REPO_ROOT = ROOT.parent
 MODEL_CONFIG = REPO_ROOT / "model" / "config.json"
-DEFAULT_CHECKPOINT = REPO_ROOT / "model" / "checkpoint"
+DEFAULT_CHECKPOINT = REPO_ROOT / "model" / "cridergpt-2.0" / "checkpoint"
+USER_TAG = "<|user|>"
+ASSISTANT_TAG = "<|assistant|>"
+EOS_TAG = "<|eos|>"
 
 
 class Backend(Protocol):
@@ -25,12 +24,29 @@ class Backend(Protocol):
 
 @dataclass
 class EchoBackend:
-    """Smoke-test backend used until trained weights are deployed."""
-
     reason: str = "trained checkpoint not available"
 
     def generate(self, prompt: str) -> str:
         return f"CriderGPT model runtime received: {prompt}"
+
+
+def format_chat_prompt(prompt: str) -> str:
+    prompt = prompt.strip()
+    if not prompt:
+        raise ValueError("prompt cannot be empty")
+    return f"{USER_TAG}\n{prompt}\n{ASSISTANT_TAG}\n"
+
+
+def clean_generated_text(text: str) -> str:
+    """Return only the assistant turn and remove leaked conversation markers."""
+    cleaned = text.strip()
+    if cleaned.startswith(ASSISTANT_TAG):
+        cleaned = cleaned[len(ASSISTANT_TAG):].lstrip()
+    stop_markers = (USER_TAG, ASSISTANT_TAG, EOS_TAG, "<|bos|>", "<|pad|>")
+    positions = [cleaned.find(marker) for marker in stop_markers if cleaned.find(marker) >= 0]
+    if positions:
+        cleaned = cleaned[: min(positions)]
+    return cleaned.strip()
 
 
 class TransformersBackend:
@@ -58,7 +74,8 @@ class TransformersBackend:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
     def generate(self, prompt: str) -> str:
-        inputs = self.tokenizer(prompt, return_tensors="pt")
+        rendered = format_chat_prompt(prompt)
+        inputs = self.tokenizer(rendered, return_tensors="pt")
         inputs = {key: value.to(self.device) for key, value in inputs.items()}
         input_length = inputs["input_ids"].shape[-1]
 
@@ -74,13 +91,20 @@ class TransformersBackend:
             )
 
         generated = output[0][input_length:]
-        return self.tokenizer.decode(generated, skip_special_tokens=True).strip()
+        decoded = self.tokenizer.decode(generated, skip_special_tokens=True)
+        return clean_generated_text(decoded)
 
 
 def load_config() -> dict:
     if MODEL_CONFIG.exists():
         return json.loads(MODEL_CONFIG.read_text(encoding="utf-8"))
-    return {"name": "CriderGPT", "stage": 6}
+    return {
+        "name": "CriderGPT 2.0",
+        "family": "CriderGPT Native",
+        "version": "2.0.0",
+        "stage": 6,
+        "checkpoint_path": "model/cridergpt-2.0/checkpoint",
+    }
 
 
 def checkpoint_path(config: dict) -> Path:
@@ -114,8 +138,8 @@ def generate(prompt: str, backend: Backend | None = None) -> str:
     return (backend or EchoBackend()).generate(prompt)
 
 
-def interactive_chat(backend: Backend) -> None:
-    print("\nCriderGPT Local AI")
+def interactive_chat(backend: Backend, model_name: str) -> None:
+    print(f"\n{model_name} Local AI")
     print("Type /exit to quit.\n")
     while True:
         try:
@@ -129,7 +153,8 @@ def interactive_chat(backend: Backend) -> None:
             print("Goodbye.")
             return
         try:
-            print(f"CriderGPT: {generate(prompt, backend)}\n")
+            answer = generate(prompt, backend)
+            print(f"CriderGPT: {answer or '[empty response]'}\n")
         except Exception as exc:
             print(f"CriderGPT error: {exc}\n")
 
@@ -142,13 +167,14 @@ def main() -> int:
     args = parser.parse_args()
 
     config = load_config()
-    print(f"CriderGPT runtime: {config.get('name', 'CriderGPT')}")
+    model_name = config.get("name", "CriderGPT 2.0")
+    print(f"CriderGPT runtime: {model_name}")
     print(f"Stage: {config.get('stage', 6)}")
     backend = load_backend(config, max_new_tokens=args.max_new_tokens)
 
     prompt = " ".join(args.prompt).strip()
     if args.chat or not prompt:
-        interactive_chat(backend)
+        interactive_chat(backend, model_name)
     else:
         print(f"CriderGPT: {generate(prompt, backend)}")
     return 0

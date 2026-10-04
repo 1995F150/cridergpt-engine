@@ -69,11 +69,30 @@ def load_records(source: Path) -> list[str]:
 
 
 def append_records(records: list[str], dest, repeat: int = 1) -> int:
-    repeat = max(1, repeat)
+    if repeat < 0:
+        raise ValueError("source weights cannot be negative")
     for _ in range(repeat):
         for text in records:
             dest.write(json.dumps({"text": text}, ensure_ascii=False) + "\n")
     return len(records) * repeat
+
+
+def append_jsonl(source: Path, dest, repeat: int = 1) -> int:
+    """Append a weighted JSONL source while preserving the original public helper."""
+    return append_records(load_records(source), dest, repeat)
+
+
+def has_checkpoint(path: Path) -> bool:
+    return path.is_dir() and any(path.iterdir())
+
+
+def validate_replacement(base: Path, output: Path, overwrite: bool) -> None:
+    """Require an explicit opt-in when replacing 2.0 from another checkpoint."""
+    if has_checkpoint(output) and base.resolve() != output.resolve() and not overwrite:
+        raise SystemExit(
+            f"{output} already contains a checkpoint. Use --overwrite-2.0 only "
+            "if replacement is intentional."
+        )
 
 
 def backup_checkpoint(path: Path, history_dir: Path) -> Path | None:
@@ -117,16 +136,25 @@ def main() -> int:
     p.add_argument("--batch-size", type=int, default=4)
     p.add_argument("--gradient-accumulation", type=int, default=4)
     p.add_argument("--learning-rate", type=float, default=5e-5)
-    p.add_argument("--no-backup", action="store_true", help="Do not preserve the current 2.0 checkpoint before replacement")
+    p.add_argument(
+        "--overwrite-2.0",
+        action="store_true",
+        help="Allow replacing the current 2.0 checkpoint when starting from a different base",
+    )
     args = p.parse_args()
 
     base = args.base_model or (
-        DEFAULT_OUTPUT if DEFAULT_OUTPUT.exists() and any(DEFAULT_OUTPUT.iterdir()) else V1_CHECKPOINT
+        DEFAULT_OUTPUT if has_checkpoint(DEFAULT_OUTPUT) else V1_CHECKPOINT
     )
     if not base.exists():
         raise SystemExit(f"Base checkpoint not found: {base}")
     if not args.oasst1.exists():
         raise SystemExit(f"Prepared OASST1 data not found: {args.oasst1}")
+    validate_replacement(base, args.output_dir, args.overwrite_2_0)
+
+    identity_records = load_records(SEED_DIR / "identity.jsonl")
+    if not identity_records:
+        raise SystemExit("Identity dataset is empty; refusing to train.")
 
     if args.work_dir.exists():
         shutil.rmtree(args.work_dir)
@@ -135,7 +163,7 @@ def main() -> int:
     sources = {
         "oasst1": (load_records(args.oasst1), 1),
         "conversations": (load_records(args.conversation_data), args.conversation_weight),
-        "identity": (load_records(SEED_DIR / "identity.jsonl"), args.identity_weight),
+        "identity": (identity_records, args.identity_weight),
         "behavior": (load_records(SEED_DIR / "behavior.jsonl"), args.behavior_weight),
         "writing_samples": (load_records(args.writing_samples), args.writing_weight),
         "founder_memory": (
@@ -159,7 +187,7 @@ def main() -> int:
     print(f"  TOTAL: {total:,}")
 
     if counts["identity"] == 0:
-        raise SystemExit("Identity dataset is empty; refusing to train.")
+        raise SystemExit("Identity weight must be greater than zero; refusing to train.")
     if total == 0:
         raise SystemExit("No training records found.")
 
@@ -207,9 +235,11 @@ def main() -> int:
         "--seed",
         "42",
     ])
+    if not has_checkpoint(trained):
+        raise SystemExit(f"Training completed without a usable checkpoint: {trained}")
 
     backup = None
-    if args.output_dir.exists() and any(args.output_dir.iterdir()) and not args.no_backup:
+    if has_checkpoint(args.output_dir):
         backup = backup_checkpoint(args.output_dir, args.history_dir)
         print(f"Preserved previous 2.0 checkpoint at: {backup}")
 

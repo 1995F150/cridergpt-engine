@@ -61,12 +61,12 @@ The builder expects the already-prepared OASST1 file at
 `data/training/oasst1/train_conversations.jsonl` and the CriderGPT 1.0
 checkpoint at `model/checkpoint`.
 
-## Emily 8K context dataset
+## Emily 15K context dataset
 
 The builder now loads this local dataset by default:
 
 ```text
-data/training/cridergpt2/emily_context_8000.jsonl
+data/training/cridergpt2/emily_context_15000.jsonl
 ```
 
 It is mixed into rehearsal training as the `emily_context` source. The default
@@ -75,7 +75,7 @@ overridden with `--emily-context PATH`.
 
 The dataset contains private relationship context, so it stays under the
 Git-ignored `data/` tree rather than being committed to this public repository.
-Copy the generated `emily_context_8000.jsonl` into that path before training.
+Copy the generated `emily_context_15000.jsonl` into that path before training.
 
 
 ## Scoped memory-system training
@@ -98,6 +98,6 @@ user preferences, the legacy profile, user training inputs, and bounded recent
 chat history. The builder loads this file automatically as the `memory_system`
 source with weight 1.
 
-The 8K Emily dataset remains the main Emily source, and
+The 15K Emily dataset remains the main Emily source, and
 `data/training/cridergpt2/emily_context.jsonl` is also loaded as a smaller
 `emily_context_updates` source so newly confirmed details are not lost.

@@ -2,7 +2,7 @@
 
 This builder uses rehearsal/replay: every continued-training run mixes the broad
 OASST1 corpus with CriderGPT identity, behavior, optional real conversation
-exports, writing samples, Emily context, and optional founder memory. That reduces catastrophic
+exports, writing samples, Emily context, scoped memory-system snapshots, and optional founder memory. That reduces catastrophic
 forgetting compared with training only on the newest data.
 """
 from __future__ import annotations
@@ -135,6 +135,20 @@ def main() -> int:
         help="8,000-row relationship, importance, and grounded appearance context about Emily",
     )
     p.add_argument("--emily-context-weight", type=int, default=4)
+    p.add_argument(
+        "--emily-context-updates",
+        type=Path,
+        default=DEFAULT_LOCAL / "emily_context.jsonl",
+        help="Small grounded Emily updates layered on top of the 8K dataset",
+    )
+    p.add_argument("--emily-context-updates-weight", type=int, default=4)
+    p.add_argument(
+        "--memory-system",
+        type=Path,
+        default=DEFAULT_LOCAL / "memory_system.jsonl",
+        help="Scoped local memory-system snapshot exported by export_cridergpt2_context.py",
+    )
+    p.add_argument("--memory-system-weight", type=int, default=1)
     p.add_argument("--founder-memory", type=Path, default=DEFAULT_LOCAL / "founder_memory.jsonl")
     p.add_argument("--founder-memory-weight", type=int, default=2)
     p.add_argument("--include-founder-memory", action="store_true")
@@ -174,6 +188,11 @@ def main() -> int:
         "behavior": (load_records(SEED_DIR / "behavior.jsonl"), args.behavior_weight),
         "writing_samples": (load_records(args.writing_samples), args.writing_weight),
         "emily_context": (load_records(args.emily_context), args.emily_context_weight),
+        "emily_context_updates": (
+            load_records(args.emily_context_updates),
+            args.emily_context_updates_weight,
+        ),
+        "memory_system": (load_records(args.memory_system), args.memory_system_weight),
         "founder_memory": (
             load_records(args.founder_memory) if args.include_founder_memory else [],
             args.founder_memory_weight,
@@ -268,6 +287,8 @@ def main() -> int:
         "behavior_weight": args.behavior_weight,
         "writing_weight": args.writing_weight,
         "emily_context_weight": args.emily_context_weight,
+        "emily_context_updates_weight": args.emily_context_updates_weight,
+        "memory_system_weight": args.memory_system_weight,
         "founder_memory_weight": args.founder_memory_weight,
         "includes_private_founder_memory": bool(args.include_founder_memory),
     }

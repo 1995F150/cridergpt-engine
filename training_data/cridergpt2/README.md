@@ -76,3 +76,28 @@ overridden with `--emily-context PATH`.
 The dataset contains private relationship context, so it stays under the
 Git-ignored `data/` tree rather than being committed to this public repository.
 Copy the generated `emily_context_8000.jsonl` into that path before training.
+
+
+## Scoped memory-system training
+
+To export the current retrievable memory system into a local, gitignored training
+snapshot:
+
+```bash
+python training/export_cridergpt2_context.py --user-id USER_ID --include-memory-system
+```
+
+This writes:
+
+```text
+data/training/cridergpt2/memory_system.jsonl
+```
+
+The snapshot can include the core profile, project knowledge, long-term `ai_memory`,
+user preferences, the legacy profile, user training inputs, and bounded recent
+chat history. The builder loads this file automatically as the `memory_system`
+source with weight 1.
+
+The 8K Emily dataset remains the main Emily source, and
+`data/training/cridergpt2/emily_context.jsonl` is also loaded as a smaller
+`emily_context_updates` source so newly confirmed details are not lost.

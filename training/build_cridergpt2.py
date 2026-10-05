@@ -131,8 +131,8 @@ def main() -> int:
     p.add_argument(
         "--emily-context",
         type=Path,
-        default=DEFAULT_LOCAL / "emily_context_8000.jsonl",
-        help="8,000-row relationship, importance, and grounded appearance context about Emily",
+        default=DEFAULT_LOCAL / "emily_context_15000.jsonl",
+        help="15,000-row relationship, importance, and grounded appearance context about Emily",
     )
     p.add_argument("--emily-context-weight", type=int, default=4)
     p.add_argument(

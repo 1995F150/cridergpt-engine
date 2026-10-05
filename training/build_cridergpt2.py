@@ -2,7 +2,7 @@
 
 This builder uses rehearsal/replay: every continued-training run mixes the broad
 OASST1 corpus with CriderGPT identity, behavior, optional real conversation
-exports, writing samples, and optional founder memory. That reduces catastrophic
+exports, writing samples, Emily context, and optional founder memory. That reduces catastrophic
 forgetting compared with training only on the newest data.
 """
 from __future__ import annotations
@@ -128,6 +128,13 @@ def main() -> int:
     p.add_argument("--behavior-weight", type=int, default=25)
     p.add_argument("--writing-samples", type=Path, default=DEFAULT_LOCAL / "writing_samples.jsonl")
     p.add_argument("--writing-weight", type=int, default=2)
+    p.add_argument(
+        "--emily-context",
+        type=Path,
+        default=DEFAULT_LOCAL / "emily_context.jsonl",
+        help="Relationship and appearance context about Emily",
+    )
+    p.add_argument("--emily-context-weight", type=int, default=4)
     p.add_argument("--founder-memory", type=Path, default=DEFAULT_LOCAL / "founder_memory.jsonl")
     p.add_argument("--founder-memory-weight", type=int, default=2)
     p.add_argument("--include-founder-memory", action="store_true")
@@ -166,6 +173,7 @@ def main() -> int:
         "identity": (identity_records, args.identity_weight),
         "behavior": (load_records(SEED_DIR / "behavior.jsonl"), args.behavior_weight),
         "writing_samples": (load_records(args.writing_samples), args.writing_weight),
+        "emily_context": (load_records(args.emily_context), args.emily_context_weight),
         "founder_memory": (
             load_records(args.founder_memory) if args.include_founder_memory else [],
             args.founder_memory_weight,
@@ -259,6 +267,7 @@ def main() -> int:
         "identity_weight": args.identity_weight,
         "behavior_weight": args.behavior_weight,
         "writing_weight": args.writing_weight,
+        "emily_context_weight": args.emily_context_weight,
         "founder_memory_weight": args.founder_memory_weight,
         "includes_private_founder_memory": bool(args.include_founder_memory),
     }

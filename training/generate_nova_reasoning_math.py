@@ -79,7 +79,7 @@ def generate(count,seed):
     while len(rows)<count:
         attempts+=1
         if attempts>count*200: raise RuntimeError("could not generate enough unique records")
-        q,a=make(KINDS[len(rows)%len(KINDS)],r); key=" ".join(q.lower().split())
+        q,a=make(KINDS[(attempts-1)%len(KINDS)],r); key=" ".join(q.lower().split())
         if key in seen: continue
         seen.add(key); rows.append(rec(q,a))
     return rows

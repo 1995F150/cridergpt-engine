@@ -300,3 +300,20 @@ The builder does not run automatically. Actual training only begins when
 
 The 2.0 terminal runtime formats prompts with user/assistant role markers and
 removes leaked role markers from displayed model output.
+
+## CriderGPT model roadmap
+
+CriderGPT model releases use version numbers for technical generations and may
+also use space-themed codenames for major milestones.
+
+| Version | Codename | Status / intent |
+| --- | --- | --- |
+| CriderGPT 2.0 | — | Current trained baseline |
+| CriderGPT 2.1 | Nova | Next quality, reasoning, and training-pipeline release |
+| CriderGPT 2.5 | Nebula | Planned larger-dataset / capability milestone |
+| CriderGPT 3.0 | Andromeda | Planned major architecture and hardware generation |
+| CriderGPT 4.0 | Pulsar | Possible future multimodal generation |
+| CriderGPT 5.0 | Cosmos | Long-term future generation |
+
+Only CriderGPT 2.0 currently represents a completed trained checkpoint. The
+remaining names are roadmap codenames and may change as development progresses.

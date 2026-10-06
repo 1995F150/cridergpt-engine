@@ -1,0 +1,50 @@
+{"messages":[{"role":"user","content":"If 24 chickens are divided equally among 6 pens, how many chickens go in each pen?"},{"role":"assistant","content":"Divide 24 by 6. 24 ÷ 6 = 4, so each pen gets 4 chickens."}]}
+{"messages":[{"role":"user","content":"A farmer has 45 eggs and packs 9 eggs in each carton. How many full cartons can be filled?"},{"role":"assistant","content":"45 ÷ 9 = 5, so 5 full cartons can be filled."}]}
+{"messages":[{"role":"user","content":"What is 17 + 28?"},{"role":"assistant","content":"17 + 28 = 45."}]}
+{"messages":[{"role":"user","content":"What is 96 - 37?"},{"role":"assistant","content":"96 - 37 = 59."}]}
+{"messages":[{"role":"user","content":"What is 14 × 8?"},{"role":"assistant","content":"14 × 8 = 112."}]}
+{"messages":[{"role":"user","content":"What is 144 ÷ 12?"},{"role":"assistant","content":"144 ÷ 12 = 12."}]}
+{"messages":[{"role":"user","content":"A $80 item is discounted by 25%. What is the sale price?"},{"role":"assistant","content":"25% of $80 is $20. Subtracting the discount gives $80 - $20 = $60, so the sale price is $60."}]}
+{"messages":[{"role":"user","content":"A tank is 3/4 full and holds 40 gallons when full. How many gallons are in it?"},{"role":"assistant","content":"3/4 of 40 is 30, so the tank contains 30 gallons."}]}
+{"messages":[{"role":"user","content":"Which is larger: 0.65 or 2/3?"},{"role":"assistant","content":"2/3 is about 0.667, which is greater than 0.65. Therefore, 2/3 is larger."}]}
+{"messages":[{"role":"user","content":"A car travels 180 miles in 3 hours at a constant speed. What is its average speed?"},{"role":"assistant","content":"180 ÷ 3 = 60, so the average speed is 60 miles per hour."}]}
+{"messages":[{"role":"user","content":"You buy 3 cables for $7.50 each. What is the total before tax?"},{"role":"assistant","content":"3 × $7.50 = $22.50, so the total before tax is $22.50."}]}
+{"messages":[{"role":"user","content":"A server has 32 GB of RAM and uses 18 GB. How much RAM remains unused?"},{"role":"assistant","content":"32 - 18 = 14, so 14 GB remains unused."}]}
+{"messages":[{"role":"user","content":"A file is 1,200 MB. If 300 MB has downloaded, what percentage is complete?"},{"role":"assistant","content":"300 ÷ 1,200 = 0.25. Multiplying by 100 gives 25%, so the download is 25% complete."}]}
+{"messages":[{"role":"user","content":"A job pays $18 per hour for 7 hours. What is the gross pay?"},{"role":"assistant","content":"18 × 7 = 126, so the gross pay is $126."}]}
+{"messages":[{"role":"user","content":"A rectangle is 8 feet long and 5 feet wide. What is its area?"},{"role":"assistant","content":"Area = length × width = 8 × 5 = 40 square feet."}]}
+{"messages":[{"role":"user","content":"A square has sides 6 inches long. What is its perimeter?"},{"role":"assistant","content":"A square has four equal sides. 4 × 6 = 24, so its perimeter is 24 inches."}]}
+{"messages":[{"role":"user","content":"What is the next number in the sequence 2, 4, 8, 16, ?"},{"role":"assistant","content":"Each number is doubled. 16 × 2 = 32, so the next number is 32."}]}
+{"messages":[{"role":"user","content":"What is the next number in the sequence 5, 10, 15, 20, ?"},{"role":"assistant","content":"The sequence increases by 5 each time, so the next number is 25."}]}
+{"messages":[{"role":"user","content":"All red boxes are heavy. Box A is red. What can you conclude?"},{"role":"assistant","content":"Because all red boxes are heavy and Box A is red, Box A must be heavy."}]}
+{"messages":[{"role":"user","content":"Some birds can fly. A penguin is a bird. Can you conclude that a penguin can fly from those statements alone?"},{"role":"assistant","content":"No. Saying some birds can fly does not mean every bird can fly, so the conclusion does not follow from those statements alone."}]}
+{"messages":[{"role":"user","content":"If today is Monday, what day will it be 10 days from today?"},{"role":"assistant","content":"Seven days after Monday is Monday again, with 3 days remaining. Three more days is Thursday."}]}
+{"messages":[{"role":"user","content":"A recipe needs 2 cups of flour for 8 servings. How much flour is needed for 20 servings?"},{"role":"assistant","content":"20 servings is 2.5 times 8 servings. 2 × 2.5 = 5, so 5 cups of flour are needed."}]}
+{"messages":[{"role":"user","content":"A machine produces 12 parts every 4 minutes at a constant rate. How many parts does it produce in 20 minutes?"},{"role":"assistant","content":"12 ÷ 4 = 3 parts per minute. Over 20 minutes, 3 × 20 = 60 parts."}]}
+{"messages":[{"role":"user","content":"A battery is at 80% and has a 100 Ah rated capacity. Ignoring losses, how many amp-hours correspond to 80%?"},{"role":"assistant","content":"0.80 × 100 Ah = 80 Ah."}]}
+{"messages":[{"role":"user","content":"A store adds 5% sales tax to a $40 purchase. What is the final total?"},{"role":"assistant","content":"5% of $40 is $2. Adding the tax gives $42."}]}
+{"messages":[{"role":"user","content":"A 120 V device draws 2 A. Using P = V × I, what power does it use?"},{"role":"assistant","content":"P = 120 × 2 = 240 watts."}]}
+{"messages":[{"role":"user","content":"Three friends split a $51 bill equally. How much does each person pay?"},{"role":"assistant","content":"51 ÷ 3 = 17, so each person pays $17."}]}
+{"messages":[{"role":"user","content":"A board is 10 feet long. You cut off 30 inches. How many feet remain?"},{"role":"assistant","content":"30 inches is 2.5 feet. 10 - 2.5 = 7.5 feet remain."}]}
+{"messages":[{"role":"user","content":"What is 15% of 200?"},{"role":"assistant","content":"0.15 × 200 = 30."}]}
+{"messages":[{"role":"user","content":"Solve for x: x + 9 = 23."},{"role":"assistant","content":"Subtract 9 from both sides: x = 23 - 9 = 14."}]}
+{"messages":[{"role":"user","content":"Solve for x: 4x = 36."},{"role":"assistant","content":"Divide both sides by 4: x = 9."}]}
+{"messages":[{"role":"user","content":"A number is doubled and then 6 is added, giving 20. What is the number?"},{"role":"assistant","content":"Let the number be x. 2x + 6 = 20, so 2x = 14 and x = 7."}]}
+{"messages":[{"role":"user","content":"Which is cheaper per item: 6 items for $18 or 10 items for $25?"},{"role":"assistant","content":"$18 ÷ 6 = $3 per item. $25 ÷ 10 = $2.50 per item. The 10-item option is cheaper per item."}]}
+{"messages":[{"role":"user","content":"A computer has a 1 TB drive with 250 GB free. Using 1 TB = 1000 GB for this problem, how much space is used?"},{"role":"assistant","content":"1000 - 250 = 750 GB, so 750 GB is used."}]}
+{"messages":[{"role":"user","content":"A download speed is 20 MB/s. Ignoring overhead, how long does a 600 MB file take?"},{"role":"assistant","content":"600 ÷ 20 = 30, so it takes 30 seconds."}]}
+{"messages":[{"role":"user","content":"A class has 12 boys and 18 girls. What fraction of the class are girls?"},{"role":"assistant","content":"There are 30 students total. The fraction is 18/30, which simplifies to 3/5."}]}
+{"messages":[{"role":"user","content":"If 5 identical boxes weigh 35 pounds total, how much does each box weigh?"},{"role":"assistant","content":"35 ÷ 5 = 7, so each box weighs 7 pounds."}]}
+{"messages":[{"role":"user","content":"A price rises from $50 to $60. What is the percentage increase?"},{"role":"assistant","content":"The increase is $10. $10 ÷ $50 = 0.20, so the percentage increase is 20%."}]}
+{"messages":[{"role":"user","content":"A price falls from $80 to $60. What is the percentage decrease?"},{"role":"assistant","content":"The decrease is $20. $20 ÷ $80 = 0.25, so the percentage decrease is 25%."}]}
+{"messages":[{"role":"user","content":"You have $150 and spend $47.25. How much remains?"},{"role":"assistant","content":"$150.00 - $47.25 = $102.75."}]}
+{"messages":[{"role":"user","content":"A clock reads 2:35 PM. What time will it be 50 minutes later?"},{"role":"assistant","content":"25 minutes takes the time to 3:00 PM, and 25 more minutes gives 3:25 PM."}]}
+{"messages":[{"role":"user","content":"A train leaves at 9:15 AM and arrives at 11:45 AM. How long is the trip?"},{"role":"assistant","content":"From 9:15 to 11:15 is 2 hours, then another 30 minutes to 11:45. The trip is 2 hours 30 minutes."}]}
+{"messages":[{"role":"user","content":"If A is greater than B and B is greater than C, what relationship must hold between A and C?"},{"role":"assistant","content":"A must be greater than C."}]}
+{"messages":[{"role":"user","content":"A bag contains 3 red balls and 2 blue balls. What is the probability of randomly drawing a blue ball?"},{"role":"assistant","content":"There are 5 balls total and 2 are blue, so the probability is 2/5, or 40%."}]}
+{"messages":[{"role":"user","content":"What is the average of 10, 20, and 30?"},{"role":"assistant","content":"Add them: 10 + 20 + 30 = 60. Divide by 3 to get an average of 20."}]}
+{"messages":[{"role":"user","content":"A worker completes 1/4 of a job in one hour at a constant rate. How long will the whole job take?"},{"role":"assistant","content":"If 1/4 takes 1 hour at a constant rate, 4/4 takes 4 hours."}]}
+{"messages":[{"role":"user","content":"A 12-foot board is cut into pieces that are each 3 feet long. How many pieces are made?"},{"role":"assistant","content":"12 ÷ 3 = 4 pieces."}]}
+{"messages":[{"role":"user","content":"There are 60 chicks. 10% are moved to another brooder. How many chicks are moved?"},{"role":"assistant","content":"10% of 60 is 6, so 6 chicks are moved."}]}
+{"messages":[{"role":"user","content":"A network has 8 identical devices, each using 5 Mbps at the same time. What is their combined usage?"},{"role":"assistant","content":"8 × 5 Mbps = 40 Mbps combined."}]}
+{"messages":[{"role":"user","content":"A backup starts with 500 files and 125 have completed. How many files remain?"},{"role":"assistant","content":"500 - 125 = 375 files remain."}]}

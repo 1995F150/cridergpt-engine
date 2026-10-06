@@ -1,0 +1,40 @@
+{"id":"nova-eval-001","category":"arithmetic","prompt":"What is 347 + 586?","expected_answer":"933"}
+{"id":"nova-eval-002","category":"arithmetic","prompt":"What is 1200 - 487?","expected_answer":"713"}
+{"id":"nova-eval-003","category":"arithmetic","prompt":"What is 36 multiplied by 14?","expected_answer":"504"}
+{"id":"nova-eval-004","category":"arithmetic","prompt":"What is 936 divided by 18?","expected_answer":"52"}
+{"id":"nova-eval-005","category":"percent","prompt":"What is 35% of 240?","expected_answer":"84"}
+{"id":"nova-eval-006","category":"percent","prompt":"A price increases from $80 to $100. What is the percentage increase?","expected_answer":"25%"}
+{"id":"nova-eval-007","category":"fraction","prompt":"What is three fifths of 85?","expected_answer":"51"}
+{"id":"nova-eval-008","category":"ratio","prompt":"A recipe uses 2 cups of rice for every 3 cups of water. If you use 8 cups of rice, how much water is needed?","expected_answer":"12 cups"}
+{"id":"nova-eval-009","category":"algebra","prompt":"Solve for x: 5x + 7 = 42.","expected_answer":"7"}
+{"id":"nova-eval-010","category":"algebra","prompt":"Solve for x: 4x - 9 = 35.","expected_answer":"11"}
+{"id":"nova-eval-011","category":"rate","prompt":"A car travels 315 miles in 5 hours. What is its average speed?","expected_answer":"63 miles per hour"}
+{"id":"nova-eval-012","category":"multi_step","prompt":"Four machines each make 7 parts per hour. How many parts do they make in 6 hours?","expected_answer":"168"}
+{"id":"nova-eval-013","category":"money","prompt":"You buy 6 items for $13 each and pay $100. How much change do you receive?","expected_answer":"$22"}
+{"id":"nova-eval-014","category":"units","prompt":"A 10-foot board has 30 inches cut off. How many feet remain?","expected_answer":"7.5 feet"}
+{"id":"nova-eval-015","category":"geometry","prompt":"A rectangle is 17 feet by 9 feet. What is its area?","expected_answer":"153 square feet"}
+{"id":"nova-eval-016","category":"geometry","prompt":"A rectangle is 12 meters by 7 meters. What is its perimeter?","expected_answer":"38 meters"}
+{"id":"nova-eval-017","category":"average","prompt":"What is the average of 12, 19, 25, and 32?","expected_answer":"22"}
+{"id":"nova-eval-018","category":"probability","prompt":"A bag contains 3 red balls and 9 blue balls. What is the probability of drawing a blue ball?","expected_answer":"3/4"}
+{"id":"nova-eval-019","category":"sequence","prompt":"What comes next: 7, 12, 17, 22, ?","expected_answer":"27"}
+{"id":"nova-eval-020","category":"sequence","prompt":"What comes next: 3, 9, 27, 81, ?","expected_answer":"243"}
+{"id":"nova-eval-021","category":"logic","prompt":"If Alice is taller than Ben and Ben is taller than Chris, who is taller: Alice or Chris?","expected_answer":"Alice"}
+{"id":"nova-eval-022","category":"logic","prompt":"Some servers are offline. Server X is a server. Can you conclude Server X is offline?","expected_answer":"No"}
+{"id":"nova-eval-023","category":"time","prompt":"A task starts at 8:45 and lasts 95 minutes. What time does it finish?","expected_answer":"10:20"}
+{"id":"nova-eval-024","category":"storage","prompt":"A 500 GB drive is 40% used. How many GB remain?","expected_answer":"300 GB"}
+{"id":"nova-eval-025","category":"word_problem","prompt":"There are 24 chickens divided equally among 6 pens. How many chickens are in each pen?","expected_answer":"4"}
+{"id":"nova-eval-026","category":"word_problem","prompt":"A shop packs 72 bolts equally into 8 boxes. How many bolts go in each box?","expected_answer":"9"}
+{"id":"nova-eval-027","category":"instruction","prompt":"Answer with only the number: What is 9 + 8?","expected_answer":"17"}
+{"id":"nova-eval-028","category":"instruction","prompt":"Give the opposite of 'increase' in one word.","expected_answer":"decrease"}
+{"id":"nova-eval-029","category":"coding","prompt":"In Python, what value does len([4, 8, 12, 16]) return?","expected_answer":"4"}
+{"id":"nova-eval-030","category":"coding","prompt":"In Python, which operator checks equality: = or ==?","expected_answer":"=="}
+{"id":"nova-eval-031","category":"linux","prompt":"What command prints the current working directory on Linux?","expected_answer":"pwd"}
+{"id":"nova-eval-032","category":"linux","prompt":"What command commonly shows IP addresses assigned to Linux interfaces?","expected_answer":"ip addr"}
+{"id":"nova-eval-033","category":"networking","prompt":"What service normally translates domain names into IP addresses?","expected_answer":"DNS"}
+{"id":"nova-eval-034","category":"networking","prompt":"What protocol commonly assigns IP configuration automatically on a LAN?","expected_answer":"DHCP"}
+{"id":"nova-eval-035","category":"networking","prompt":"What is the common default TCP port for SSH?","expected_answer":"22"}
+{"id":"nova-eval-036","category":"networking","prompt":"Is 192.168.10.25 a private IPv4 address?","expected_answer":"Yes"}
+{"id":"nova-eval-037","category":"identity","prompt":"What is the name and version of this model?","expected_answer":"CriderGPT 2.1 Nova"}
+{"id":"nova-eval-038","category":"identity","prompt":"Who created CriderGPT?","expected_answer":"Jessie Crider"}
+{"id":"nova-eval-039","category":"reasoning","prompt":"A server has 32 GB of RAM and is using 24 GB. How many GB are unused?","expected_answer":"8 GB"}
+{"id":"nova-eval-040","category":"reasoning","prompt":"A 1000 MB download is 65% complete. How many MB remain?","expected_answer":"350 MB"}

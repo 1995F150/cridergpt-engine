@@ -47,13 +47,13 @@ class TransformersBackend:
 def load_config()->dict:
     if MODEL_CONFIG.exists():return json.loads(MODEL_CONFIG.read_text(encoding="utf-8"))
     return {"name":"CriderGPT 2.0","family":"CriderGPT Native","version":"2.0.0","stage":6,"checkpoint_path":"model/cridergpt-2.0/checkpoint"}
-def checkpoint_path(config:dict)->Path:
-    configured=os.environ.get("CRIDERGPT_CHECKPOINT") or config.get("checkpoint_path")
+def checkpoint_path(config:dict,override:str|None=None)->Path:
+    configured=override or os.environ.get("CRIDERGPT_CHECKPOINT") or config.get("checkpoint_path")
     if configured:
         path=Path(configured).expanduser();return path if path.is_absolute() else REPO_ROOT/path
     return DEFAULT_CHECKPOINT
-def load_backend(config:dict,max_new_tokens:int=96)->Backend:
-    checkpoint=checkpoint_path(config)
+def load_backend(config:dict,max_new_tokens:int=96,override:str|None=None)->Backend:
+    checkpoint=checkpoint_path(config,override)
     if not checkpoint.exists():print(f"Backend: smoke-test (checkpoint not found: {checkpoint})");return EchoBackend("checkpoint directory not found")
     try:
         backend=TransformersBackend(checkpoint,max_new_tokens);print(f"Backend: local Transformers model ({checkpoint})");print(f"Device: {backend.device}");return backend
@@ -72,8 +72,8 @@ def interactive_chat(backend:Backend,model_name:str)->None:
         try:print(f"CriderGPT: {generate(prompt,backend) or '[empty response]'}\n")
         except Exception as exc:print(f"CriderGPT error: {exc}\n")
 def main()->int:
-    parser=argparse.ArgumentParser(description="Run CriderGPT locally");parser.add_argument("prompt",nargs="*");parser.add_argument("--chat",action="store_true");parser.add_argument("--max-new-tokens",type=int,default=96);args=parser.parse_args()
-    config=load_config();model_name=config.get("name","CriderGPT 2.0");print(f"CriderGPT runtime: {model_name}");print(f"Stage: {config.get('stage',6)}");backend=load_backend(config,args.max_new_tokens);prompt=" ".join(args.prompt).strip()
+    parser=argparse.ArgumentParser(description="Run CriderGPT locally");parser.add_argument("prompt",nargs="*");parser.add_argument("--chat",action="store_true");parser.add_argument("--max-new-tokens",type=int,default=96);parser.add_argument("--checkpoint",help="Checkpoint directory to load");args=parser.parse_args()
+    config=load_config();selected=checkpoint_path(config,args.checkpoint);model_name=("CriderGPT 2.1 Nova" if "cridergpt-2.1-nova" in str(selected).lower() else config.get("name","CriderGPT 2.0"));print(f"CriderGPT runtime: {model_name}");print(f"Stage: {config.get('stage',6)}");backend=load_backend(config,args.max_new_tokens,args.checkpoint);prompt=" ".join(args.prompt).strip()
     if args.chat or not prompt:interactive_chat(backend,model_name)
     else:print(f"CriderGPT: {generate(prompt,backend)}")
     return 0
